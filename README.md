@@ -30,5 +30,7 @@ The simpler way is to add the following line to `config.txt`. It will reconfigur
 
   - GPIO 10 (SPI, MOSI, APA DATA)
   - GPIO 11 (SPI, CLK,  APA CLK)
+  - GPIO 13 (PWM1, AUDIO L)
+  - GPIO 18 (PWM0, AUDIO R)
 
 ![preview](img/eness_logo.png)

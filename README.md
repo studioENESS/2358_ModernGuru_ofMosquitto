@@ -22,7 +22,10 @@ The simpler way is to add the following line to `config.txt`. It will reconfigur
 
 ## Software
 
-  - Raspian v10 (Buster)
+  - Raspian v10 (Buster*, Enable SPI)
+
+> *OpenFrameworks is using [OpenMAX](https://www.khronos.org/openmaxil) and needs the `lopenmaxil` library.
+
   - OpenFrameworks v0.12.0 Armv6
   - ofxGPIO
 

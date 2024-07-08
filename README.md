@@ -18,7 +18,12 @@ As the Raspberry Pi Zero has no audio output we need to adjust the device tree o
 
 The simpler way is to add the following line to `config.txt`. It will reconfigure the pins at boot without any external software or services. The PWMO will be on the GPIO #18, and PWM1 on GPIO #13.
 
-  > dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4
+  > dtoverlay=pwm-2chan,pin=18,func=2,pin2=13,func2=4  
+  > audio_pwm_mode=1   
+
+To disable HDMI audio output, append ,noaudio to the end of the dtoverlay=vc4-kms-v3d
+
+  > dtoverlay=vc4-kms-v3d,noaudio
 
 ## Software
 

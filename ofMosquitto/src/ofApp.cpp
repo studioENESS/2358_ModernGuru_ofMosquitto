@@ -45,6 +45,25 @@ void ofApp::setup(){
 	pixile.SetupSockets();
 	pixile.start();
 	soundsOn = true;
+	
+	// we are running the systems commands
+	// in a sperate thread so that it does
+	// not block this application
+	startThread();
+}
+
+//--------------------------------------------------------------
+void ofApp::threadedFunction() {
+
+	while (isThreadRunning()) {
+		if (pixile.SoundsOn(){
+			// call the system command say
+			std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string((int)ofRandom(299)) + ".wav";
+			ofSystem(cmd.c_str());
+			// slowdown
+			ofSleepMillis(1000);
+		}
+	}
 }
 
 //--------------------------------------------------------------
@@ -141,6 +160,7 @@ void ofApp::gotMessage(ofMessage msg){
 //--------------------------------------------------------------
 void ofApp::exit(){ 
 	apa.clearAPA102(numLed+5);
+	waitForThread(true);
 	ofExit(0);
 }
 

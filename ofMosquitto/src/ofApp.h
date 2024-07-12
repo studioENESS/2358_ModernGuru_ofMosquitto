@@ -1,6 +1,9 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxGPIO.h"
+#include "ofxPixileComms.h"
+#include "ofxPixelEyes.h"
 
 class ofApp : public ofBaseApp{
 
@@ -20,5 +23,14 @@ class ofApp : public ofBaseApp{
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
-		
+		void exit();
+
+	private:
+		void initPixelData(); 
+		int numLed;
+		int brightness;
+		LED apa;
+		std::vector<ofColor> pixelData;
+		ofxPixileComms pixile;
+		ofxPixelEyes PixelEyes;
 };

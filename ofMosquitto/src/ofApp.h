@@ -37,7 +37,6 @@ class ofApp : public ofBaseApp, public ofThread {
 		void update();
 		void draw();
 		void exit();
-		void threadedFunction();
 
 		void keyPressed(int key);
 		void keyReleased(int key);
@@ -50,6 +49,9 @@ class ofApp : public ofBaseApp, public ofThread {
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
+
+	protected:
+		static void PixileMessageHandler(SPixileMessage* pMessage, void* pUserData);
 
 	private:
 		eState currentState;

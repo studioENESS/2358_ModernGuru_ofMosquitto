@@ -43,27 +43,9 @@ void ofApp::setup(){
 	pixile.Computer_id(1); // Really?!
 	pixile.Server_port(3637);
 	pixile.SetupSockets();
+	pixile.SetMessageHandler(&PixileMessageHandler, this);
 	pixile.start();
 	soundsOn = true;
-	
-	// we are running the systems commands
-	// in a sperate thread so that it does
-	// not block this application
-	startThread();
-}
-
-//--------------------------------------------------------------
-void ofApp::threadedFunction() {
-
-	while (isThreadRunning()) {
-		if (pixile.SoundsOn(){
-			// call the system command say
-			std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string((int)ofRandom(299)) + ".wav";
-			ofSystem(cmd.c_str());
-			// slowdown
-			ofSleepMillis(1000);
-		}
-	}
 }
 
 //--------------------------------------------------------------
@@ -242,4 +224,41 @@ void ofApp::initPixelData(){
 		pixelData.push_back(ofColor(0,0,0));
 		pixelDataOFF.push_back(ofColor(0,0,0));
 	}
+}
+
+void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
+{
+	ofApp* pMe = static_cast<ofApp*>(pUserData);
+	switch(pMessage->_id)
+	{
+		case 1:
+			{
+			pid_t pid;
+			pid = fork();
+			if (pid == 0)
+			{
+			pMe->nextQuoteID = pMessage->param[0];
+			ofLog() << "Recieved Quote: " << pMe->nextQuoteID << std::endl;
+			std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string((int)pMe->nextQuoteID) + ".wav";
+			ofSystem(cmd.c_str());
+			::exit(0);
+			}
+			break;
+		}
+		case 2:
+		{
+			pMe->PixelEyes.EyeBalls.m_ColourEyeBall.r = pMessage->param[0];
+			pMe->PixelEyes.EyeBalls.m_ColourEyeBall.g = pMessage->param[1];
+			pMe->PixelEyes.EyeBalls.m_ColourEyeBall.b = pMessage->param[2];
+			break;
+		}
+		case 3:
+		{
+		}
+		default:
+		{	
+			ofLog() << "Unhandled Message Type: " << pMessage->_id << std::endl;
+			break;
+		}
+	};
 }

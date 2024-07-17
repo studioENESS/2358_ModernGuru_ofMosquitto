@@ -5,31 +5,6 @@
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
 
-enum eState {
-	es_Eyes = 0,
-	es_Numbers,
-	es_Count
-};
-
-const int numberMap[][36] = {
-  {
-	-1, 0, 1, 1, 0,-1,
-	 0, 1, 0, 0, 1, 0,
-	 0, 1, 0, 0, 1, 0,
-	 0, 1, 0, 0, 1, 0,
-	 0, 1, 0, 0, 1, 0,
-	-1, 0, 1, 1, 0,-1
-  },
-  { // 1
-	-1, 0, 1, 1, 0,-1,
-	 0, 0, 0, 1, 0, 0,
-	 0, 0, 0, 1, 0, 0,
-	 0, 0, 0, 1, 0, 0,
-	 0, 0, 0, 1, 0, 0,
-	-1, 0, 0, 1, 0,-1
-  }	
-};
-
 class ofApp : public ofBaseApp, public ofThread {
 
 	public:
@@ -49,6 +24,33 @@ class ofApp : public ofBaseApp, public ofThread {
 		void windowResized(int w, int h);
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
+		
+		void setEyeballColor(ofColor c);
+	
+		enum eState {
+			es_Eyes = 0,
+			es_Numbers,
+			es_Count
+		};
+
+		const int numberMap[2][36] = {
+		  { // 0
+			-1, 0, 1, 1, 0,-1,
+			 0, 1, 0, 0, 1, 0,
+			 0, 1, 0, 0, 1, 0,
+			 0, 1, 0, 0, 1, 0,
+			 0, 1, 0, 0, 1, 0,
+			-1, 0, 1, 1, 0,-1
+		  },
+		  { // 1
+			-1, 0, 1, 1, 0,-1,
+			 0, 0, 0, 1, 0, 0,
+			 0, 0, 0, 1, 0, 0,
+			 0, 0, 0, 1, 0, 0,
+			 0, 0, 0, 1, 0, 0,
+			-1, 0, 0, 1, 0,-1
+		  }	
+		};
 
 	protected:
 		static void PixileMessageHandler(SPixileMessage* pMessage, void* pUserData);

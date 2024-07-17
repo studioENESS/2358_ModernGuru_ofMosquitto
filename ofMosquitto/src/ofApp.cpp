@@ -140,6 +140,11 @@ void ofApp::gotMessage(ofMessage msg){
 }
 
 //--------------------------------------------------------------
+void ofApp::setEyeballColor(ofColor c){
+	PixelEyes.Eyeballs.m_ColourEyeball = c;
+}
+
+//--------------------------------------------------------------
 void ofApp::exit(){ 
 	apa.clearAPA102(numLed+5);
 	waitForThread(true);
@@ -148,11 +153,11 @@ void ofApp::exit(){
 
 //--------------------------------------------------------------
 void ofApp::doStateEyes(){
-	ofPixels eyepix = PixelEyes.EyeBalls.getEyeBallPixels();
+	ofPixels eyepix = PixelEyes.Eyeballs.getEyeballPixels();
 	int led = 0;
 	for(int i=0; i<PixelEyes.getEyeCount(); i++){
-		for(int y = 0; y < PixelEyes.EyeBalls.getSize().y; y++){
-			for(int x = 0; x < PixelEyes.EyeBalls.getSize().x; x++){
+		for(int y = 0; y < PixelEyes.Eyeballs.getSize().y; y++){
+			for(int x = 0; x < PixelEyes.Eyeballs.getSize().x; x++){
 				ofColor c = eyepix.getColor(x,y);
 				if(c.a > 0){
 					pixelData[led] = c; 
@@ -183,7 +188,7 @@ void ofApp::doStateNumbers(){
 					 case 0: // LED OFF
 						break;
 					case 1: // LED ON
-						c = PixelEyes.EyeBalls.m_ColourEyeBall;
+						c = PixelEyes.Eyeballs.m_ColourEyeball;
 						break;
 				}
 				pixelData[led] = c; 
@@ -235,21 +240,20 @@ void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
 			{
 			pid_t pid;
 			pid = fork();
-			if (pid == 0)
-			{
-			pMe->nextQuoteID = pMessage->param[0];
-			ofLog() << "Recieved Quote: " << pMe->nextQuoteID << std::endl;
-			std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string((int)pMe->nextQuoteID) + ".wav";
-			ofSystem(cmd.c_str());
-			::exit(0);
+			if (pid == 0) {
+				int nextQuoteID = pMessage->param[0];
+				ofLog() << "Recieved Quote: " << nextQuoteID << std::endl;
+				std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string(nextQuoteID) + ".wav";
+				ofSystem(cmd.c_str());
+				::exit(0);
 			}
 			break;
 		}
 		case 2:
 		{
-			pMe->PixelEyes.EyeBalls.m_ColourEyeBall.r = pMessage->param[0];
-			pMe->PixelEyes.EyeBalls.m_ColourEyeBall.g = pMessage->param[1];
-			pMe->PixelEyes.EyeBalls.m_ColourEyeBall.b = pMessage->param[2];
+			pMe->PixelEyes.Eyeballs.m_ColourEyeball.r = pMessage->param[0];
+			pMe->PixelEyes.Eyeballs.m_ColourEyeball.g = pMessage->param[1];
+			pMe->PixelEyes.Eyeballs.m_ColourEyeball.b = pMessage->param[2];
 			break;
 		}
 		case 3:

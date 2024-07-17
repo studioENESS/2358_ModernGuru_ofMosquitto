@@ -4,13 +4,13 @@
 
 ## Hardware
 
-  - Raspberry Pi Zero 2 W
-  - Adafruit Speaker Bonnet
-  - 3W 4-8Ohm Speaker
-  - 2x ENESS Eye PCB
-  - 5VDC 6A PSU
-**Optional**
-  - DfRobot [microwave sensors]
+  - Raspberry Pi Zero 2 W  
+  - Adafruit Speaker Bonnet  
+  - 3W 4-8Ohm Speaker  
+  - 2x ENESS Eye PCB  
+  - 5VDC 6A PSU  
+**Optional**  
+  - DfRobot [microwave sensors]  
 
 ### Pin Mapping
 

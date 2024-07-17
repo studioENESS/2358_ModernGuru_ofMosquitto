@@ -9,6 +9,8 @@
   - 3W 4-8Ohm Speaker
   - 2x ENESS Eye PCB
   - 5VDC 6A PSU
+**Optional**
+  - DfRobot [microwave sensors]
 
 ### Pin Mapping
 
@@ -17,6 +19,14 @@ The Speaker Bonnet uses 3 data pins (I2C) on pins:
 
 LEDs are conneced using 2 pins (SPI):
   `10` (MOSI, DATA), `11` (CLK)
+
+## Microwave Sensors
+
+The [microwave sensors] pulse pin is connected to RPI GPIO `23` (Left/Front), `24` (Right/Back). We use a voltage devider to step down the triggers.
+
+    `5V -> 2K2 | 3K3 -> GND`
+
+**Detection Angle**: The angle of detection is 72 degrees with the antenna in a parallel direction (azimuth) The vertical (pitch) direction of the antenna is 36 degrees.
 
 ## Software
 
@@ -34,7 +44,7 @@ LEDs are conneced using 2 pins (SPI):
     mkdir /home/pi/.config/autostart
     nano /home/pi/.config/autostart/mosquitto.desktop
 
-Copy the following text into the mosquitto.desktop file.
+Write the following into the mosquitto.desktop file.
 
     [Desktop Entry]
     Type=Application
@@ -42,3 +52,6 @@ Copy the following text into the mosquitto.desktop file.
     Exec=/usr/bin/bash /home/pi/openFrameworks/apps/2358_ModernGuru_ofMosquitto/scripts/client.sh
 
 ![preview](img/eness_logo.png)
+
+
+[microwave sensors]: http://groups.google.com/group/celluloid-ruby](https://www.dfrobot.com/product-1403.html

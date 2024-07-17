@@ -29,5 +29,16 @@ LEDs are conneced using 2 pins (SPI):
   - ofxPixileComms
   - ofxPixelEyes
 
+## Config Autostart
+
+    mkdir /home/pi/.config/autostart
+    nano /home/pi/.config/autostart/mosquitto.desktop
+
+Copy the following text into the mosquitto.desktop file.
+
+    [Desktop Entry]
+    Type=Application
+    Name=Mosquitto
+    Exec=/usr/bin/bash /home/pi/openFrameworks/apps/2358_ModernGuru_ofMosquitto/scripts/client.sh
 
 ![preview](img/eness_logo.png)

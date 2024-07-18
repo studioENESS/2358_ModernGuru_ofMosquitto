@@ -2,7 +2,11 @@
 
 //--------------------------------------------------------------
 void ofApp::setup(){
-	
+	gpioMicrowaveSensor = new GPIO("23");
+	gpioMicrowaveSensor->export_gpio();
+	gpioMicrowaveSensor->setdir_gpio("in");
+	stateMicrowaveSensor = "0";
+
 	brightness = 1;
 	numPCBs    = 2;
 	numLed     = 32*numPCBs;
@@ -66,7 +70,7 @@ void ofApp::update(){
 		case es_Numbers:
 			doStateNumbers();
 			break;
-	}	
+	};	
 	
 	if(!pixile.LightsOn()){
 		// Leds OFF
@@ -74,7 +78,10 @@ void ofApp::update(){
 	} else {
 		// Update LEDs
 		apa.setAPA102(numLed,pixelData,brightness);
-	}
+	};
+	
+	gpioMicrowaveSensor->getval_gpio(stateMicrowaveSensor);
+	if(stateMicrowaveSensor == "1") PixelEyes.Eyeballs.sleep(false);
 }
 
 //--------------------------------------------------------------
@@ -147,7 +154,6 @@ void ofApp::setEyeballColor(ofColor c){
 //--------------------------------------------------------------
 void ofApp::exit(){ 
 	apa.clearAPA102(numLed+5);
-	waitForThread(true);
 	ofExit(0);
 }
 

@@ -5,7 +5,7 @@
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
 
-class ofApp : public ofBaseApp, public ofThread {
+class ofApp : public ofBaseApp {
 
 	public:
 		void setup();
@@ -27,6 +27,9 @@ class ofApp : public ofBaseApp, public ofThread {
 		
 		void setEyeballColor(ofColor c);
 	
+		GPIO* gpioMicrowaveSensor;
+		std::string stateMicrowaveSensor;
+
 		enum eState {
 			es_Eyes = 0,
 			es_Numbers,

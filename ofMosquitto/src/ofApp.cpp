@@ -1,11 +1,12 @@
 #include "ofApp.h"
+#include "Eyeball.h"
 
 //--------------------------------------------------------------
-void ofApp::setup(){
+void ofApp::setup() {
 	gpioMicrowaveSensor = new GPIO("23");
 	gpioMicrowaveSensor->export_gpio();
 	gpioMicrowaveSensor->setdir_gpio("in");
-	stateMicrowaveSensor = "0";
+	stateMicrowaveSensor = "1"; //pull-down logic
 
 	brightness = 1;
 	numPCBs    = 2;
@@ -18,16 +19,25 @@ void ofApp::setup(){
 	}
 
 	currentState = es_Eyes;
-
+	
+	soundsOn = true;
+	
 	PixelEyes.setup(numPCBs);
 	PixelEyes.setDrawMargin(4);
-	
+	PixelEyes.Eyeballs.setSoundOn(soundsOn);
+
+#ifdef MICROWAVE_INSTALLED
+	PixelEyes.Eyeballs.canSleep(true);
+#else
+	PixelEyes.Eyeballs.canSleep(false);
+#endif
+
 	currentMillis = ofGetElapsedTimeMillis();
 	lastStateNumberMillis = currentMillis;
 	lastStateNumberMillis = currentMillis;
 	lastNewNumberMillis = currentMillis;
 	stateNumberStartMillis = currentMillis;
-	
+
 	// How long before the numbers appear
 	stateNumberIntervalMin = 40000;
 	stateNumberIntervalMax = 80000;
@@ -40,7 +50,7 @@ void ofApp::setup(){
 	
 	// The speed of number change
 	newNumberInterval = 250;
-	
+
 	// Pixile Communicator
 	// Can we have a nicer setup?
 	pixile.Master(false);
@@ -49,7 +59,6 @@ void ofApp::setup(){
 	pixile.SetupSockets();
 	pixile.SetMessageHandler(&PixileMessageHandler, this);
 	pixile.start();
-	soundsOn = true;
 }
 
 //--------------------------------------------------------------
@@ -59,6 +68,7 @@ void ofApp::update(){
 	
 	if (pixile.SoundsOn() != soundsOn) {
 		soundsOn = pixile.SoundsOn();
+		PixelEyes.Eyeballs.setSoundOn(soundsOn);
 	}
 
 	PixelEyes.update();
@@ -70,8 +80,8 @@ void ofApp::update(){
 		case es_Numbers:
 			doStateNumbers();
 			break;
-	};	
-	
+	};
+
 	if(!pixile.LightsOn()){
 		// Leds OFF
 		apa.setAPA102(numLed,pixelDataOFF,0);
@@ -80,20 +90,37 @@ void ofApp::update(){
 		apa.setAPA102(numLed,pixelData,brightness);
 	};
 	
+#ifdef MICROWAVE_INSTALLED
 	gpioMicrowaveSensor->getval_gpio(stateMicrowaveSensor);
-	if(stateMicrowaveSensor == "1") PixelEyes.Eyeballs.sleep(false);
+	//ofLog() << stateMicrowaveSensor << std::endl;
+	if(stateMicrowaveSensor == "0") PixelEyes.Eyeballs.sleep(false);
+#endif
+
 }
 
 //--------------------------------------------------------------
 void ofApp::draw(){
 	// Drawing is just for debugging :)
-	// Comment out before deploying
 	PixelEyes.draw(180, 100, 25);
 }
 
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
-
+	ofLog() << "Key " << key << " pressed." << std::endl;
+	if(key == 115) { // s for Sleep
+		switch(PixelEyes.Eyeballs.getState()){
+			case eye_Normal:
+				PixelEyes.Eyeballs.sleep(true);
+				break;
+			case eye_Sleeping:
+				PixelEyes.Eyeballs.sleep(false);
+				break;
+		}
+	} else if (key == 113) { // q for Quote
+		playQuote(ofRandom(0,199));
+	} else if (key == 98) { // b for Blink
+		PixelEyes.Eyeballs.blink();
+	}
 }
 
 //--------------------------------------------------------------
@@ -144,6 +171,19 @@ void ofApp::dragEvent(ofDragInfo dragInfo){
 //--------------------------------------------------------------
 void ofApp::gotMessage(ofMessage msg){
 
+}
+
+//--------------------------------------------------------------
+void ofApp::playQuote(int quoteID) {
+	// Make sure eyes are open on speech
+	PixelEyes.Eyeballs.setState(eye_Normal);
+	pid_t pid;
+	pid = fork();
+	if (pid == 0) {
+		std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string(quoteID) + ".wav";
+		ofSystem(cmd.c_str());
+		::exit(0);
+	}
 }
 
 //--------------------------------------------------------------
@@ -243,16 +283,8 @@ void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
 	switch(pMessage->_id)
 	{
 		case 1:
-			{
-			pid_t pid;
-			pid = fork();
-			if (pid == 0) {
-				int nextQuoteID = pMessage->param[0];
-				ofLog() << "Recieved Quote: " << nextQuoteID << std::endl;
-				std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string(nextQuoteID) + ".wav";
-				ofSystem(cmd.c_str());
-				::exit(0);
-			}
+		{
+			pMe-> playQuote(pMessage->param[0]);
 			break;
 		}
 		case 2:
@@ -264,6 +296,7 @@ void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
 		}
 		case 3:
 		{
+			pMe->PixelEyes.Eyeballs.sleep(pMessage->param[0]);
 		}
 		default:
 		{	

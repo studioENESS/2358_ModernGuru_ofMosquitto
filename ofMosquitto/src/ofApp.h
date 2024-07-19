@@ -5,6 +5,8 @@
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
 
+//#define MICROWAVE_INSTALLED
+
 class ofApp : public ofBaseApp {
 
 	public:
@@ -25,6 +27,7 @@ class ofApp : public ofBaseApp {
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		
+		void playQuote(int quoteID);
 		void setEyeballColor(ofColor c);
 	
 		GPIO* gpioMicrowaveSensor;

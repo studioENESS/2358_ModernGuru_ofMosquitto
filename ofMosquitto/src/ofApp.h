@@ -32,7 +32,7 @@ class ofApp : public ofBaseApp {
 	
 		GPIO* gpioMicrowaveSensor;
 		std::string stateMicrowaveSensor;
-
+		
 		enum eState {
 			es_Eyes = 0,
 			es_Numbers,

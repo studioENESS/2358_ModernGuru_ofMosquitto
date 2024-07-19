@@ -106,6 +106,17 @@ void ofApp::setState(eState state){
 //--------------------------------------------------------------
 void ofApp::draw(){
 	// Drawing is just for debugging :)
+	if(soundsOn) {
+		ofDrawBitmapString("SOUND ON", 20, 20);
+	} else {
+		ofDrawBitmapString("SOUND OFF", 20, 20);
+	}
+	
+	if(pixile.LightsOn()){
+		ofDrawBitmapString("LIGHT ON", 20, 40);
+	} else {
+		ofDrawBitmapString("LIGHT OFF", 20, 40);
+	}
 	PixelEyes.draw(180, 100, 25);
 }
 
@@ -126,12 +137,19 @@ void ofApp::keyPressed(int key){
 	} else if (key == 98) { // b for Blink
 		PixelEyes.Eyeballs.blink();
 	} else if (key == 110) { // n for Numbers
-		switch(getState()){
+		switch(currentState){
 			case es_Eyes:
 				setState(es_Numbers);
+				stateNumberStartMillis = currentMillis;
+				freshStateNumberDuration();
+				ofLog() << "Setting State Numbers" << currentState << std::endl;
 				break;
 			case es_Numbers:
 				setState(es_Eyes);
+				ofLog() << "Setting State Eyes" << currentState << std::endl;
+				break;
+			default:
+				ofLog() << "Key " << key << " pressed." << std::endl;
 				break;
 		}
 	}

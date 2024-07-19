@@ -39,8 +39,8 @@ void ofApp::setup() {
 	stateNumberStartMillis = currentMillis;
 
 	// How long before the numbers appear
-	stateNumberIntervalMin = 40000;
-	stateNumberIntervalMax = 80000;
+	stateNumberIntervalMin = 20000;
+	stateNumberIntervalMax = 50000;
 	stateNumberInterval = stateNumberIntervalMin;
 	
 	// How long the numbers appear for
@@ -99,6 +99,11 @@ void ofApp::update(){
 }
 
 //--------------------------------------------------------------
+void ofApp::setState(eState state){
+	currentState = state;
+}
+
+//--------------------------------------------------------------
 void ofApp::draw(){
 	// Drawing is just for debugging :)
 	PixelEyes.draw(180, 100, 25);
@@ -120,6 +125,15 @@ void ofApp::keyPressed(int key){
 		playQuote(ofRandom(0,199));
 	} else if (key == 98) { // b for Blink
 		PixelEyes.Eyeballs.blink();
+	} else if (key == 110) { // n for Numbers
+		switch(getState()){
+			case es_Eyes:
+				setState(es_Numbers);
+				break;
+			case es_Numbers:
+				setState(es_Eyes);
+				break;
+		}
 	}
 }
 
@@ -175,8 +189,8 @@ void ofApp::gotMessage(ofMessage msg){
 
 //--------------------------------------------------------------
 void ofApp::playQuote(int quoteID) {
-	// Make sure eyes are open on speech
-	PixelEyes.Eyeballs.setState(eye_Normal);
+	// Make sure eyes are not sleeping on speech
+	PixelEyes.Eyeballs.sleep(false);
 	pid_t pid;
 	pid = fork();
 	if (pid == 0) {

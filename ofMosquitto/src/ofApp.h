@@ -5,7 +5,7 @@
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
 
-//#define MICROWAVE_INSTALLED
+#define MICROWAVE_INSTALLED
 
 class ofApp : public ofBaseApp {
 
@@ -38,6 +38,12 @@ class ofApp : public ofBaseApp {
 			es_Numbers,
 			es_Count
 		};
+		
+		void setState(eState state);
+	
+		eState getState(){
+			return currentState;
+		};
 
 		const int numberMap[2][36] = {
 		  { // 0
@@ -57,7 +63,7 @@ class ofApp : public ofBaseApp {
 			-1, 0, 0, 1, 0,-1
 		  }	
 		};
-
+		
 	protected:
 		static void PixileMessageHandler(SPixileMessage* pMessage, void* pUserData);
 

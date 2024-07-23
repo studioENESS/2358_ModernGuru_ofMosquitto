@@ -385,7 +385,7 @@ void ofApp::newRandomNumbers(){
 	bool playNewNumberSound = false;
 	for(int &i : randomNumbers){
 		int old = i;
-		ofSeedRandom(ofGetFrameNum());
+		ofSeedRandom();
 		i = ofRandom(0,2);
 		if(i != old) playNewNumberSound = true;
 	}

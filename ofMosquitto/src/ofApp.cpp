@@ -1,13 +1,14 @@
 #include "ofApp.h"
 #include "Eyeball.h"
-
+#include <unistd.h>
 //--------------------------------------------------------------
 void ofApp::setup() {
 	gpioMicrowaveSensor = new GPIO("23");
 	gpioMicrowaveSensor->export_gpio();
 	gpioMicrowaveSensor->setdir_gpio("in");
 	stateMicrowaveSensor = "1"; //pull-down logic
-
+	
+	drawMargin = 4;
 	brightness = 1;
 	numPCBs    = 2;
 	numLed     = 32*numPCBs;
@@ -20,10 +21,10 @@ void ofApp::setup() {
 
 	currentState = es_Eyes;
 	
-	soundsOn = true;
+	soundsOn = false;
 	
 	PixelEyes.setup(numPCBs);
-	PixelEyes.setDrawMargin(4);
+	PixelEyes.setDrawMargin(drawMargin);
 	PixelEyes.Eyeballs.setSoundOn(soundsOn);
 
 #ifdef MICROWAVE_INSTALLED
@@ -53,12 +54,12 @@ void ofApp::setup() {
 
 	// Pixile Communicator
 	// Can we have a nicer setup?
+	getMyNetworkID();
 	pixile.Master(false);
-	pixile.Computer_id(1); // Really?!
+	pixile.Computer_id(myNetworkID);
 	pixile.Server_port(3637);
 	pixile.SetupSockets();
 	pixile.SetMessageHandler(&PixileMessageHandler, this);
-	pixile.start();
 }
 
 //--------------------------------------------------------------
@@ -71,10 +72,9 @@ void ofApp::update(){
 		PixelEyes.Eyeballs.setSoundOn(soundsOn);
 	}
 
-	PixelEyes.update();
-
 	switch (currentState) {
 		case es_Eyes:
+			PixelEyes.update();
 			doStateEyes();
 			break;
 		case es_Numbers:
@@ -117,7 +117,19 @@ void ofApp::draw(){
 	} else {
 		ofDrawBitmapString("LIGHT OFF", 20, 40);
 	}
-	PixelEyes.draw(180, 100, 25);
+	
+	if(stateMicrowaveSensor == "0"){
+		ofDrawBitmapString("TRIGGER", 20, 60);
+	}
+	
+	switch (currentState) {
+		case es_Eyes:
+			PixelEyes.draw(180, 100, 25);
+			break;
+		case es_Numbers:
+			drawNumbers(180, 100, 25);
+			break;
+	};
 }
 
 //--------------------------------------------------------------
@@ -205,17 +217,64 @@ void ofApp::gotMessage(ofMessage msg){
 
 }
 
+void ofApp::drawNumbers(int _x, int _y, int _scale) {
+	ofPushStyle();
+	ofFill();
+	
+	for(int i=0; i<numPCBs; i++){
+		float startX = _x + (i*(6*_scale)) + (i*(drawMargin*_scale));
+		float startY = _y;
+		for(int y = 0; y < 6; y++){
+			for(int x = 0; x < 6; x++){
+				ofColor c = ofColor(0,0,0); //OFF
+				switch(numberMap[randomNumbers[i]][6*y+x]) {
+					case -1:
+						continue; // No Led at this position
+						break;
+					 case 0: // LED OFF
+						break;
+					case 1: // LED ON
+						c = PixelEyes.Eyeballs.m_ColourEyeball;
+						break;
+				}
+				
+				ofSetColor(c);
+				ofDrawRectangle(startX+(x*_scale), startY+(y*_scale), 1*_scale, 1*_scale);
+				
+			}
+		}
+	}
+
+	ofPopStyle();
+}
+
 //--------------------------------------------------------------
-void ofApp::playQuote(int quoteID) {
-	// Make sure eyes are not sleeping on speech
-	PixelEyes.Eyeballs.sleep(false);
+void ofApp::sysCMD(std::string cmd) {
+	if(!soundsOn) return;
+
 	pid_t pid;
 	pid = fork();
 	if (pid == 0) {
-		std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string(quoteID) + ".wav";
 		ofSystem(cmd.c_str());
-		::exit(0);
+		
+		pid_t mypid = getpid();
+		printf("Child id %d\n" ,mypid);
+		kill(mypid,SIGKILL);
+
+	} else {
+		kill(pid, SIGTERM);
 	}
+}
+
+//--------------------------------------------------------------
+void ofApp::playQuote(int quoteID) {
+	if(!soundsOn) return;
+ 	if(currentState != es_Eyes) setState(es_Eyes);
+
+	// Make sure eyes are not sleeping on speech
+	PixelEyes.Eyeballs.sleep(false);
+	std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string(quoteID) + ".wav & exit;";
+	sysCMD(cmd);
 }
 
 //--------------------------------------------------------------
@@ -282,12 +341,36 @@ void ofApp::doStateNumbers(){
 }
 
 //--------------------------------------------------------------
+int ofApp::getMyNetworkID() {
+	myNetworkID = -1;
+
+	ofDirectory d(""); // data
+	d.allowExt("id");
+	d.listDir();
+	
+	for(int i = 0; i < d.size(); i++) {
+		ofLog() << d[i].getFileName() << std::endl;
+		myNetworkID = stoi(d[i].getFileName().substr(0,d[i].getFileName().find_first_of(".")));
+		ofLog() << "Setting network ID: " << myNetworkID <<  std::endl;
+	}
+	
+	return myNetworkID;
+}
+
+//--------------------------------------------------------------
 void ofApp::newRandomNumbers(){
+	bool playNewNumberSound = false;
 	for(int &i : randomNumbers){
+		int old = i;
 		ofSeedRandom();
 		i = ofRandom(0,2);
+		if(i != old) playNewNumberSound = true;
 	}
 	lastNewNumberMillis = currentMillis;
+	if(playNewNumberSound){
+		std::string cmd = "aplay data/audio/GURU_BLINK_" + std::to_string((int)ofRandom(1,5)) + ".wav & exit";
+		sysCMD(cmd);
+	}
 }
 
 //--------------------------------------------------------------
@@ -316,7 +399,9 @@ void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
 	{
 		case 1:
 		{
-			pMe-> playQuote(pMessage->param[0]);
+			if(pMessage->param[1] == 0 || pMessage->param[1] == pMe->myNetworkID) {
+				pMe->playQuote(pMessage->param[0]);
+			}
 			break;
 		}
 		case 2:

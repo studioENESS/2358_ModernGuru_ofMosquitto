@@ -27,6 +27,9 @@ class ofApp : public ofBaseApp {
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		
+		void drawNumbers(int x, int y, int scale);
+		
+		void sysCMD(std::string cmd);
 		void playQuote(int quoteID);
 		void setEyeballColor(ofColor c);
 	
@@ -68,6 +71,8 @@ class ofApp : public ofBaseApp {
 		static void PixileMessageHandler(SPixileMessage* pMessage, void* pUserData);
 
 	private:
+		int myNetworkID;
+		int drawMargin;
 		eState currentState;
 		uint64_t currentMillis;
 		
@@ -87,7 +92,8 @@ class ofApp : public ofBaseApp {
 
 		void doStateEyes();
 		void doStateNumbers();
-		
+		int getMyNetworkID();
+	
 		void newRandomNumbers();
 		void freshStateNumberInterval();
 		std::vector<int> randomNumbers;

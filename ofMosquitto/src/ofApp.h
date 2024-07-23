@@ -1,11 +1,13 @@
 #pragma once
 
 #include "ofMain.h"
-#include "ofxGPIO.h"
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
 
+#ifdef RPI
+#include "ofxGPIO.h"
 #define MICROWAVE_INSTALLED
+#endif
 
 class ofApp : public ofBaseApp {
 
@@ -29,11 +31,12 @@ class ofApp : public ofBaseApp {
 		
 		void drawNumbers(int x, int y, int scale);
 		
-		void sysCMD(std::string cmd);
+		void playSound(std::string cmd);
 		void playQuote(int quoteID);
 		void setEyeballColor(ofColor c);
-	
+#ifdef __linux__
 		GPIO* gpioMicrowaveSensor;
+#endif
 		std::string stateMicrowaveSensor;
 		
 		enum eState {
@@ -71,6 +74,9 @@ class ofApp : public ofBaseApp {
 		static void PixileMessageHandler(SPixileMessage* pMessage, void* pUserData);
 
 	private:
+#ifdef __linux__
+		LED apa;
+#endif
 		int myNetworkID;
 		int drawMargin;
 		eState currentState;
@@ -102,7 +108,7 @@ class ofApp : public ofBaseApp {
 		int numLed;
 		int numPCBs;
 		int brightness;
-		LED apa;
+
 		std::vector<ofColor> pixelData;
 		std::vector<ofColor> pixelDataOFF;
 		ofxPixelEyes PixelEyes;

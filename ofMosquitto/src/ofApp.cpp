@@ -1,11 +1,20 @@
 #include "ofApp.h"
 #include "Eyeball.h"
-#include <unistd.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#include <mmsystem.h>
+#endif
+
 //--------------------------------------------------------------
 void ofApp::setup() {
+#ifdef RPI
 	gpioMicrowaveSensor = new GPIO("23");
 	gpioMicrowaveSensor->export_gpio();
 	gpioMicrowaveSensor->setdir_gpio("in");
+	apa.setupAPA102();
+#endif
+
 	stateMicrowaveSensor = "1"; //pull-down logic
 	
 	drawMargin = 4;
@@ -13,7 +22,6 @@ void ofApp::setup() {
 	numPCBs    = 2;
 	numLed     = 32*numPCBs;
 	initPixelData();
-	apa.setupAPA102();
 	
 	for(int i=0; i<numPCBs; i++){
 		randomNumbers.push_back(ofRandom(0,2));
@@ -82,6 +90,7 @@ void ofApp::update(){
 			break;
 	};
 
+#ifdef RPI
 	if(!pixile.LightsOn()){
 		// Leds OFF
 		apa.setAPA102(numLed,pixelDataOFF,0);
@@ -89,6 +98,8 @@ void ofApp::update(){
 		// Update LEDs
 		apa.setAPA102(numLed,pixelData,brightness);
 	};
+#endif
+
 	
 #ifdef MICROWAVE_INSTALLED
 	gpioMicrowaveSensor->getval_gpio(stateMicrowaveSensor);
@@ -135,7 +146,7 @@ void ofApp::draw(){
 //--------------------------------------------------------------
 void ofApp::keyPressed(int key){
 	ofLog() << "Key " << key << " pressed." << std::endl;
-	if(key == 115) { // s for Sleep
+	if(key == 's') { // s for Sleep
 		switch(PixelEyes.Eyeballs.getState()){
 			case eye_Normal:
 				PixelEyes.Eyeballs.sleep(true);
@@ -144,11 +155,11 @@ void ofApp::keyPressed(int key){
 				PixelEyes.Eyeballs.sleep(false);
 				break;
 		}
-	} else if (key == 113) { // q for Quote
-		playQuote(ofRandom(0,199));
-	} else if (key == 98) { // b for Blink
+	} else if (key == 'q') { // q for Quote
+		playQuote(ofRandom(0,299));
+	} else if (key == 'b') { // b for Blink
 		PixelEyes.Eyeballs.blink();
-	} else if (key == 110) { // n for Numbers
+	} else if (key == 'n') { // n for Numbers
 		switch(currentState){
 			case es_Eyes:
 				setState(es_Numbers);
@@ -249,12 +260,14 @@ void ofApp::drawNumbers(int _x, int _y, int _scale) {
 }
 
 //--------------------------------------------------------------
-void ofApp::sysCMD(std::string cmd) {
+void ofApp::playSound(std::string fileName) {
+	ofLog() << "playSound START" << std::endl;
 	if(!soundsOn) return;
-
+#ifdef __linux__
 	pid_t pid;
 	pid = fork();
 	if (pid == 0) {
+		std::string cmd = "aplay data/audio/" + fileName + " & exit;";
 		ofSystem(cmd.c_str());
 		
 		pid_t mypid = getpid();
@@ -264,6 +277,16 @@ void ofApp::sysCMD(std::string cmd) {
 	} else {
 		kill(pid, SIGTERM);
 	}
+#elif _WIN32
+	wstring fn;
+	fn.assign(fileName.begin(), fileName.end());                       
+	std::wstring cmd = L"data\\audio\\" + fn;
+	ofLog() << "PLAYING: " << cmd.c_str() << std::endl;
+	PlaySound(cmd.c_str(), NULL, SND_FILENAME | SND_ASYNC);
+#else
+	// No Sound
+#endif
+	ofLog() << "playSound END" << std::endl;
 }
 
 //--------------------------------------------------------------
@@ -273,8 +296,7 @@ void ofApp::playQuote(int quoteID) {
 
 	// Make sure eyes are not sleeping on speech
 	PixelEyes.Eyeballs.sleep(false);
-	std::string cmd = "aplay data/audio/MOUNTAINS_QUOTE_" + std::to_string(quoteID) + ".wav & exit;";
-	sysCMD(cmd);
+	playSound("MOUNTAINS_QUOTE_" + std::to_string(quoteID) + ".wav");
 }
 
 //--------------------------------------------------------------
@@ -283,8 +305,10 @@ void ofApp::setEyeballColor(ofColor c){
 }
 
 //--------------------------------------------------------------
-void ofApp::exit(){ 
+void ofApp::exit(){
+#ifdef __linux__
 	apa.clearAPA102(numLed+5);
+#endif
 	ofExit(0);
 }
 
@@ -362,14 +386,13 @@ void ofApp::newRandomNumbers(){
 	bool playNewNumberSound = false;
 	for(int &i : randomNumbers){
 		int old = i;
-		ofSeedRandom();
+		ofSeedRandom(ofGetFrameNum());
 		i = ofRandom(0,2);
 		if(i != old) playNewNumberSound = true;
 	}
 	lastNewNumberMillis = currentMillis;
-	if(playNewNumberSound){
-		std::string cmd = "aplay data/audio/GURU_BLINK_" + std::to_string((int)ofRandom(1,5)) + ".wav & exit";
-		sysCMD(cmd);
+	if(playNewNumberSound) {
+		playSound("GURU_BLINK_" + std::to_string((int)ofRandom(1,5)) + ".wav");
 	}
 }
 

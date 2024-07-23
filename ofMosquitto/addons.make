@@ -1,3 +1,3 @@
 ofxGPIO
-ofxPixileComms
 ofxPixelEyes
+ofxPixileComms

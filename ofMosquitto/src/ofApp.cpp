@@ -276,7 +276,7 @@ void ofApp::playSound(std::string fileName) {
 	} else {
 		kill(pid, SIGTERM);
 	}
-#elifdef _WIN32
+#elif defined _WIN32
 	wstring fn;
 	fn.assign(fileName.begin(), fileName.end());                       
 	std::wstring cmd = L"data\\audio\\" + fn;
@@ -385,13 +385,13 @@ void ofApp::newRandomNumbers(){
 	bool playNewNumberSound = false;
 	for(int &i : randomNumbers){
 		int old = i;
-		ofSeedRandom();
+		ofSeedRandom(ofRandomuf());
 		i = ofRandom(0,2);
 		if(i != old) playNewNumberSound = true;
 	}
 	lastNewNumberMillis = currentMillis;
 	if(playNewNumberSound) {
-		playSound("GURU_BLINK_" + std::to_string((int)ofRandom(1,5)) + ".wav");
+		playSound("GURU_BLINK_" + std::to_string((int)ofRandom(1, 5)) + ".wav");
 	}
 }
 

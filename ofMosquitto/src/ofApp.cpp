@@ -420,23 +420,31 @@ void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
 	ofApp* pMe = static_cast<ofApp*>(pUserData);
 	switch(pMessage->_id)
 	{
-		case 1:
+		case 1: // Play Quote
 		{
 			if(pMessage->param[1] == 0 || pMessage->param[1] == pMe->myNetworkID) {
 				pMe->playQuote(pMessage->param[0]);
 			}
 			break;
 		}
-		case 2:
+		case 2: // Update eyeball colour
 		{
 			pMe->PixelEyes.Eyeballs.m_ColourEyeball.r = pMessage->param[0];
 			pMe->PixelEyes.Eyeballs.m_ColourEyeball.g = pMessage->param[1];
 			pMe->PixelEyes.Eyeballs.m_ColourEyeball.b = pMessage->param[2];
 			break;
 		}
-		case 3:
+		case 3: // Sleep (true), Wakeup (false)
 		{
 			pMe->PixelEyes.Eyeballs.sleep(pMessage->param[0]);
+			break;
+		}
+		case 4: // Set Number State
+		{
+			pMe->setState(es_Numbers);
+			pMe->stateNumberStartMillis = pMe->currentMillis;
+			pMe->freshStateNumberDuration();
+			break;
 		}
 		default:
 		{	

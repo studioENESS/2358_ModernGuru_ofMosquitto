@@ -1,10 +1,4 @@
 #include "ofApp.h"
-#include "Eyeball.h"
-
-#ifdef _WIN32
-#include <Windows.h>
-#include <mmsystem.h>
-#endif
 
 //--------------------------------------------------------------
 void ofApp::setup() {
@@ -29,8 +23,9 @@ void ofApp::setup() {
 
 	currentState = es_Eyes;
 	
-	soundsOn = false;
-	
+	soundsOn = true;
+	ofSeedRandom();
+
 	PixelEyes.setup(numPCBs);
 	PixelEyes.setDrawMargin(drawMargin);
 	PixelEyes.Eyeballs.setSoundOn(soundsOn);
@@ -262,30 +257,7 @@ void ofApp::drawNumbers(int _x, int _y, int _scale) {
 //--------------------------------------------------------------
 void ofApp::playSound(std::string fileName) {
 	if(!soundsOn) return;
-#ifdef __linux__
-	pid_t pid;
-	pid = fork();
-	if (pid == 0) {
-		std::string cmd = "aplay data/audio/" + fileName + " & exit;";
-		ofSystem(cmd.c_str());
-		
-		pid_t mypid = getpid();
-		printf("Child id %d\n" ,mypid);
-		kill(mypid,SIGKILL);
-
-	} else {
-		kill(pid, SIGTERM);
-	}
-#elif defined _WIN32
-	wstring fn;
-	fn.assign(fileName.begin(), fileName.end());                       
-	std::wstring cmd = L"data\\audio\\" + fn;
-	ofLog() << "PLAYING: " << cmd.c_str() << std::endl;
-	PlaySound(cmd.c_str(), NULL, SND_FILENAME | SND_ASYNC);
-#else
-	// No Sound
-#endif
-
+	if (soundPlayer.ready()) soundPlayer.play(fileName);
 }
 
 //--------------------------------------------------------------
@@ -385,7 +357,6 @@ void ofApp::newRandomNumbers(){
 	bool playNewNumberSound = false;
 	for(int &i : randomNumbers){
 		int old = i;
-		ofSeedRandom();
 		i = ofRandom(0,2);
 		if(i != old) playNewNumberSound = true;
 	}

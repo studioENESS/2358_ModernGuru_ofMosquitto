@@ -3,6 +3,7 @@
 #include "ofMain.h"
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
+#include "Eyeball.h"
 
 #ifdef __arm__
 #include "ofxGPIO.h"
@@ -77,6 +78,8 @@ class ofApp : public ofBaseApp {
 #ifdef __arm__
 		LED apa;
 #endif
+		SoundPlayer soundPlayer;
+
 		int myNetworkID;
 		int drawMargin;
 		eState currentState;

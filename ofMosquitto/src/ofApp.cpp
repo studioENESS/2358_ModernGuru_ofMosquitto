@@ -12,9 +12,14 @@ void ofApp::setup() {
 	stateMicrowaveSensor = "1"; //pull-down logic
 	
 	drawMargin = 4;
+	drawScale = 25;
 	brightness = 1;
 	numPCBs    = 2;
 	numLed     = 32*numPCBs;
+
+	outputTexture.allocate(6 * numPCBs, 6, GL_RGBA);
+	outputTexture.getTexture().setTextureMinMagFilter(GL_NEAREST, GL_NEAREST);
+
 	initPixelData();
 	
 	for(int i=0; i<numPCBs; i++){
@@ -85,6 +90,31 @@ void ofApp::update(){
 			break;
 	};
 
+	// Update LEDS
+	ofPixels pix;
+	outputTexture.readToPixels(pix);
+
+	//mapUpsideDown;
+
+	int led = 0;
+	for(int i = 0; i < numPCBs; i++) {
+		for(int y = 0; y < 6; y++) {
+			for(int x = 0; x < 6; x++) {
+				int px;
+				int py;
+				int pi;
+				px = mapUpsideDown ? 5-x: x;
+				py = mapUpsideDown ? 5-y: y;
+				pi = mapUpsideDown ? (numPCBs-1)-i: i;
+				ofColor c = pix.getColor(px+(pi*6), py);
+				if(c.a > 0){
+					pixelData[led] = c;
+					led++;
+				}
+			}
+		}
+	}
+
 #ifdef __arm__
 	if(!pixile.LightsOn()){
 		// Leds OFF
@@ -127,15 +157,23 @@ void ofApp::draw(){
 	if(stateMicrowaveSensor == "0"){
 		ofDrawBitmapString("TRIGGER", 20, 60);
 	}
-	
-	switch (currentState) {
-		case es_Eyes:
-			PixelEyes.draw(180, 100, 25);
-			break;
-		case es_Numbers:
-			drawNumbers(180, 100, 25);
-			break;
-	};
+	if (mapUpsideDown)
+	{
+		ofDrawBitmapString("MAPPING INVERTED" , 20, 80);
+	}
+	else
+	{
+		ofDrawBitmapString("MAPPING STANDARD", 20, 80);
+	}
+
+	// Draw Preview ...
+	static const int startX = 180;
+	static const int startY = 100;
+	for (int i = 0; i < numPCBs; i++) {
+		float x = startX + (i * (6 * drawScale)) + (i * (drawMargin * drawScale));
+		float y = startY;
+		outputTexture.getTexture().drawSubsection(x, y, 0, (6 * drawScale), (6 * drawScale), i * 6, 0, 6, 6);
+	}
 }
 
 //--------------------------------------------------------------
@@ -150,6 +188,8 @@ void ofApp::keyPressed(int key){
 				PixelEyes.Eyeballs.sleep(false);
 				break;
 		}
+	} else if (key == 'u') {
+		mapUpsideDown = !mapUpsideDown;
 	} else if (key == 'q') { // q for Quote
 		playQuote(ofRandom(0,299));
 	} else if (key == 'b') { // b for Blink
@@ -223,37 +263,6 @@ void ofApp::gotMessage(ofMessage msg){
 
 }
 
-void ofApp::drawNumbers(int _x, int _y, int _scale) {
-	ofPushStyle();
-	ofFill();
-	
-	for(int i=0; i<numPCBs; i++){
-		float startX = _x + (i*(6*_scale)) + (i*(drawMargin*_scale));
-		float startY = _y;
-		for(int y = 0; y < 6; y++){
-			for(int x = 0; x < 6; x++){
-				ofColor c = ofColor(0,0,0); //OFF
-				switch(numberMap[randomNumbers[i]][6*y+x]) {
-					case -1:
-						continue; // No Led at this position
-						break;
-					 case 0: // LED OFF
-						break;
-					case 1: // LED ON
-						c = PixelEyes.Eyeballs.m_ColourEyeball;
-						break;
-				}
-				
-				ofSetColor(c);
-				ofDrawRectangle(startX+(x*_scale), startY+(y*_scale), 1*_scale, 1*_scale);
-				
-			}
-		}
-	}
-
-	ofPopStyle();
-}
-
 //--------------------------------------------------------------
 void ofApp::playSound(std::string fileName) {
 	if(!soundsOn) return;
@@ -285,19 +294,12 @@ void ofApp::exit(){
 
 //--------------------------------------------------------------
 void ofApp::doStateEyes(){
-	ofPixels eyepix = PixelEyes.Eyeballs.getEyeballPixels();
-	int led = 0;
-	for(int i=0; i<PixelEyes.getEyeCount(); i++){
-		for(int y = 0; y < PixelEyes.Eyeballs.getSize().y; y++){
-			for(int x = 0; x < PixelEyes.Eyeballs.getSize().x; x++){
-				ofColor c = eyepix.getColor(x,y);
-				if(c.a > 0){
-					pixelData[led] = c; 
-					led++;
-				}
-			}
-		}
-	}
+	outputTexture.begin();
+	ofClear(0,0,0,0);
+	PixelEyes.Eyeballs.draw(0, 0);
+	PixelEyes.Eyeballs.draw(6, 0);
+	outputTexture.end();
+
 	if(currentMillis - lastStateNumberMillis > stateNumberInterval){
 		currentState = es_Numbers;
 		stateNumberStartMillis = currentMillis;
@@ -308,26 +310,33 @@ void ofApp::doStateEyes(){
 //--------------------------------------------------------------
 void ofApp::doStateNumbers(){
 	if(currentMillis - lastNewNumberMillis > newNumberInterval) newRandomNumbers();
-	int led = 0;
-	for(int i=0; i<numPCBs; i++){
-		for(int y = 0; y < 6; y++){
-			for(int x = 0; x < 6; x++){
-				ofColor c = ofColor(0,0,0); //OFF
-				switch(numberMap[randomNumbers[i]][6*y+x]) {
-					case -1:
-						continue; // No Led at this position
-						break;
-					 case 0: // LED OFF
-						break;
-					case 1: // LED ON
-						c = PixelEyes.Eyeballs.m_ColourEyeball;
-						break;
+
+	outputTexture.begin();
+	ofPushStyle();
+	ofClear(0, 0, 0, 0);
+	for (int i = 0; i < numPCBs; i++) {
+		for (int y = 0; y < 6; y++) {
+			for (int x = 0; x < 6; x++) {
+				ofColor c = ofColor(0, 0, 0, 255); //OFF
+				switch (numberMap[randomNumbers[i]][6 * y + x]) {
+				case -1:
+					continue; // No Led at this position
+					break;
+				case 0: // LED OFF
+					ofSetColor(c);
+					ofDrawRectangle(x + (i * 6), y, 1, 1);
+					break;
+				case 1: // LED ON
+					ofSetColor(PixelEyes.Eyeballs.m_ColourEyeball);
+					ofDrawRectangle(x + (i * 6), y, 1, 1);
+					break;
 				}
-				pixelData[led] = c; 
-				led++;
 			}
 		}
-	}
+	};
+	ofPopStyle();
+	outputTexture.end();
+
 	// Get out of this state!
 	if(currentMillis - stateNumberStartMillis > stateNumberDuration) {
 		currentState = es_Eyes;

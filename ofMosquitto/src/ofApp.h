@@ -30,8 +30,6 @@ class ofApp : public ofBaseApp {
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		
-		void drawNumbers(int x, int y, int scale);
-		
 		void playSound(std::string cmd);
 		void playQuote(int quoteID);
 		void setEyeballColor(ofColor c);
@@ -73,6 +71,7 @@ class ofApp : public ofBaseApp {
 		
 	protected:
 		static void PixileMessageHandler(SPixileMessage* pMessage, void* pUserData);
+		bool mapUpsideDown = false;
 
 	private:
 #ifdef __arm__
@@ -82,6 +81,7 @@ class ofApp : public ofBaseApp {
 
 		int myNetworkID;
 		int drawMargin;
+		int drawScale;
 		eState currentState;
 		uint64_t currentMillis;
 		
@@ -118,4 +118,6 @@ class ofApp : public ofBaseApp {
 		
 		ofxPixileComms pixile;
 		bool soundsOn;
+
+		ofFbo outputTexture;
 };

@@ -191,7 +191,7 @@ void ofApp::keyPressed(int key){
 	} else if (key == 'u') {
 		mapUpsideDown = !mapUpsideDown;
 	} else if (key == 'q') { // q for Quote
-		playQuote(ofRandom(0,299));
+		playQuote(ofRandom(1,299));
 	} else if (key == 'b') { // b for Blink
 		PixelEyes.Eyeballs.blink();
 	} else if (key == 'n') { // n for Numbers

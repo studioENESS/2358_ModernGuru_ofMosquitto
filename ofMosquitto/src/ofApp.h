@@ -13,6 +13,12 @@
 class ofApp : public ofBaseApp {
 
 	public:
+		ofJson saveConfig();
+		void loadConfig();
+
+		ofJson getSettings();
+		void setSettings(ofJson settings);
+
 		void setup();
 		void update();
 		void draw();
@@ -101,7 +107,6 @@ class ofApp : public ofBaseApp {
 
 		void doStateEyes();
 		void doStateNumbers();
-		int getMyNetworkID();
 	
 		void newRandomNumbers();
 		void freshStateNumberInterval();

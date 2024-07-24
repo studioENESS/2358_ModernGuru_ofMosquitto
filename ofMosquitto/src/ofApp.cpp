@@ -1,6 +1,85 @@
 #include "ofApp.h"
 
 //--------------------------------------------------------------
+ofJson ofApp::saveConfig() {
+	ofJson jconf;
+	jconf["myNetworkID"]   = myNetworkID;
+	jconf["mapUpsideDown"] = mapUpsideDown;
+	jconf["numPCBs"]       = numPCBs;
+	jconf["drawMargin"]    = drawMargin;
+	jconf["drawScale"]     = drawScale;
+	ofSaveJson("config.json", jconf);
+	return jconf;
+}
+
+//--------------------------------------------------------------
+void ofApp::loadConfig() {
+	ofJson jconf;
+	ofFile file("config.json");
+	if (file.exists()) {
+		file >> jconf;
+	}
+	else { // Init
+		jconf = saveConfig();
+	}
+	
+	myNetworkID   = jconf.value("myNetworkID", myNetworkID);
+	mapUpsideDown = jconf.value("mapUpsideDown", false);
+	numPCBs       = jconf.value("numPCBs", numPCBs);
+	drawMargin    = jconf.value("drawMargin", drawMargin);
+	drawScale     = jconf.value("drawScale", drawScale);
+
+}
+
+//--------------------------------------------------------------
+ofJson ofApp::getSettings() {
+	ofJson settings;
+
+	settings["brightness"]  = brightness;
+	
+	// START TIMERS \\---------------------------------------------
+	// How long before the numbers appear
+	settings["stateNumberIntervalMin"] = stateNumberIntervalMin;
+	settings["stateNumberIntervalMax"] = stateNumberIntervalMax;
+	// How long the numbers appear for
+	settings["stateNumberDurationMin"] = stateNumberDurationMin;
+	settings["stateNumberDurationMax"] = stateNumberDurationMax;
+	// The speed of number change
+	settings["newNumberInterval"]      = newNumberInterval;
+	// END TIMERS -------------------------------------------------
+
+	settings["pixelEyeSettings"] = PixelEyes.getSettings();
+
+
+	return settings;
+}
+
+//--------------------------------------------------------------
+void ofApp::setSettings(ofJson settings) {
+	//myNetworkID = settings.value("myNetworkID", myNetworkID);
+	//numPCBs = settings.value("numPCBs", numPCBs);
+	//drawMargin  = settings.value("drawMargin" , drawMargin);
+	//drawScale   = settings.value("drawScale"  , drawScale);
+	brightness  = settings.value("brightness" , brightness);
+
+	// START TIMERS \\---------------------------------------------
+	// How long before the numbers appear
+	stateNumberIntervalMin = settings.value("stateNumberIntervalMin", stateNumberIntervalMin);
+	stateNumberIntervalMax = settings.value("stateNumberIntervalMax", stateNumberIntervalMax);
+	// How long the numbers appear for
+	stateNumberDurationMin = settings.value("stateNumberDurationMin", stateNumberDurationMin);
+	stateNumberDurationMax = settings.value("stateNumberDurationMax", stateNumberDurationMax);
+	// The speed of number change
+	newNumberInterval      = settings.value("newNumberInterval", newNumberInterval);
+	// END TIMERS -------------------------------------------------
+
+	ofJson pixelEyeSettings;
+	pixelEyeSettings = settings.value("pixelEyeSettings", pixelEyeSettings);
+	PixelEyes.setSettings(pixelEyeSettings);
+
+}
+
+//--------------------------------------------------------------
 void ofApp::setup() {
 #ifdef __arm__
 	gpioMicrowaveSensor = new GPIO("23");
@@ -9,12 +88,16 @@ void ofApp::setup() {
 	apa.setupAPA102();
 #endif
 
-	stateMicrowaveSensor = "1"; //pull-down logic
-	
+	myNetworkID = 0;
+	mapUpsideDown = false;
+	numPCBs = 2;
 	drawMargin = 4;
 	drawScale = 25;
+	loadConfig();
+
+	stateMicrowaveSensor = "1"; //pull-down logic
+	
 	brightness = 1;
-	numPCBs    = 2;
 	numLed     = 32*numPCBs;
 
 	outputTexture.allocate(6 * numPCBs, 6, GL_RGBA);
@@ -62,7 +145,6 @@ void ofApp::setup() {
 
 	// Pixile Communicator
 	// Can we have a nicer setup?
-	getMyNetworkID();
 	pixile.Master(false);
 	pixile.Computer_id(myNetworkID);
 	pixile.Server_port(3637);
@@ -93,8 +175,6 @@ void ofApp::update(){
 	// Update LEDS
 	ofPixels pix;
 	outputTexture.readToPixels(pix);
-
-	//mapUpsideDown;
 
 	int led = 0;
 	for(int i = 0; i < numPCBs; i++) {
@@ -154,16 +234,14 @@ void ofApp::draw(){
 		ofDrawBitmapString("LIGHT OFF", 20, 40);
 	}
 	
+	if (mapUpsideDown) {
+		ofDrawBitmapString("MAPPING INVERTED (u)", 20, 60);
+	} else {
+		ofDrawBitmapString("MAPPING STANDARD (u)", 20, 60);
+	}
+
 	if(stateMicrowaveSensor == "0"){
-		ofDrawBitmapString("TRIGGER", 20, 60);
-	}
-	if (mapUpsideDown)
-	{
-		ofDrawBitmapString("MAPPING INVERTED" , 20, 80);
-	}
-	else
-	{
-		ofDrawBitmapString("MAPPING STANDARD", 20, 80);
+		ofDrawBitmapString("TRIGGER", 20, 80);
 	}
 
 	// Draw Preview ...
@@ -188,8 +266,9 @@ void ofApp::keyPressed(int key){
 				PixelEyes.Eyeballs.sleep(false);
 				break;
 		}
-	} else if (key == 'u') {
+	} else if (key == 'u') { // map Upside-down
 		mapUpsideDown = !mapUpsideDown;
+		saveConfig();
 	} else if (key == 'q') { // q for Quote
 		playQuote(ofRandom(1,299));
 	} else if (key == 'b') { // b for Blink
@@ -345,23 +424,6 @@ void ofApp::doStateNumbers(){
 }
 
 //--------------------------------------------------------------
-int ofApp::getMyNetworkID() {
-	myNetworkID = -1;
-
-	ofDirectory d(""); // data
-	d.allowExt("id");
-	d.listDir();
-	
-	for(int i = 0; i < d.size(); i++) {
-		ofLog() << d[i].getFileName() << std::endl;
-		myNetworkID = stoi(d[i].getFileName().substr(0,d[i].getFileName().find_first_of(".")));
-		ofLog() << "Setting network ID: " << myNetworkID <<  std::endl;
-	}
-	
-	return myNetworkID;
-}
-
-//--------------------------------------------------------------
 void ofApp::newRandomNumbers(){
 	bool playNewNumberSound = false;
 	for(int &i : randomNumbers){
@@ -428,6 +490,10 @@ void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
 			pMe->freshStateNumberDuration();
 			break;
 		}
+		case 5: // Map Upsidedown (true upsideDown, false map Normal)
+			pMe->mapUpsideDown = pMessage->param[0];
+			pMe->saveConfig();
+			break;
 		default:
 		{	
 			ofLog() << "Unhandled Message Type: " << pMessage->_id << std::endl;

@@ -4,7 +4,7 @@
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
 
-#ifdef RPI
+#ifdef __arm__
 #include "ofxGPIO.h"
 #define MICROWAVE_INSTALLED
 #endif
@@ -34,7 +34,7 @@ class ofApp : public ofBaseApp {
 		void playSound(std::string cmd);
 		void playQuote(int quoteID);
 		void setEyeballColor(ofColor c);
-#ifdef __linux__
+#ifdef __arm__
 		GPIO* gpioMicrowaveSensor;
 #endif
 		std::string stateMicrowaveSensor;
@@ -74,7 +74,7 @@ class ofApp : public ofBaseApp {
 		static void PixileMessageHandler(SPixileMessage* pMessage, void* pUserData);
 
 	private:
-#ifdef __linux__
+#ifdef __arm__
 		LED apa;
 #endif
 		int myNetworkID;

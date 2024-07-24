@@ -8,7 +8,7 @@
 
 //--------------------------------------------------------------
 void ofApp::setup() {
-#ifdef RPI
+#ifdef __arm__
 	gpioMicrowaveSensor = new GPIO("23");
 	gpioMicrowaveSensor->export_gpio();
 	gpioMicrowaveSensor->setdir_gpio("in");
@@ -90,7 +90,7 @@ void ofApp::update(){
 			break;
 	};
 
-#ifdef RPI
+#ifdef __arm__
 	if(!pixile.LightsOn()){
 		// Leds OFF
 		apa.setAPA102(numLed,pixelDataOFF,0);
@@ -261,7 +261,6 @@ void ofApp::drawNumbers(int _x, int _y, int _scale) {
 
 //--------------------------------------------------------------
 void ofApp::playSound(std::string fileName) {
-	ofLog() << "playSound START" << std::endl;
 	if(!soundsOn) return;
 #ifdef __linux__
 	pid_t pid;
@@ -277,7 +276,7 @@ void ofApp::playSound(std::string fileName) {
 	} else {
 		kill(pid, SIGTERM);
 	}
-#elif _WIN32
+#elifdef _WIN32
 	wstring fn;
 	fn.assign(fileName.begin(), fileName.end());                       
 	std::wstring cmd = L"data\\audio\\" + fn;
@@ -286,7 +285,7 @@ void ofApp::playSound(std::string fileName) {
 #else
 	// No Sound
 #endif
-	ofLog() << "playSound END" << std::endl;
+
 }
 
 //--------------------------------------------------------------

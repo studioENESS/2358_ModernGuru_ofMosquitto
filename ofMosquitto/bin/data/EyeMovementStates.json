@@ -1,0 +1,29 @@
+[
+    {
+        "moveIntervalMax": 250,
+        "moveIntervalMin": 50,
+        "name": "Untitled",
+        "stateIntervalMax": 32000,
+        "stateIntervalMin": 8000,
+        "targetIntervalMax": 7000,
+        "targetIntervalMin": 1000
+    },
+    {
+        "moveIntervalMax": 120,
+        "moveIntervalMin": 10,
+        "name": "Untitled",
+        "stateIntervalMax": 16000,
+        "stateIntervalMin": 8000,
+        "targetIntervalMax": 1200,
+        "targetIntervalMin": 60
+    },
+    {
+        "moveIntervalMax": 30,
+        "moveIntervalMin": 10,
+        "name": "Untitled",
+        "stateIntervalMax": 1000,
+        "stateIntervalMin": 500,
+        "targetIntervalMax": 70,
+        "targetIntervalMin": 60
+    }
+]

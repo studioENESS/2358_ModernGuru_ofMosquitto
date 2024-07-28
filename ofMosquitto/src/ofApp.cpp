@@ -1,5 +1,34 @@
 #include "ofApp.h"
 
+static void to_json(ofJson& j, const ofApp::eyeMovementState& state)
+{
+	j = ofJson {
+		{ "name", state.name },
+		{ "moveIntervalMin", state.moveIntervalMin },
+		{ "moveIntervalMax", state.moveIntervalMax },
+		{ "targetIntervalMin", state.targetIntervalMin },
+		{ "targetIntervalMax", state.targetIntervalMax },
+		{ "stateIntervalMin", state.stateIntervalMin },
+		{ "stateIntervalMax", state.stateIntervalMax }
+	};
+}
+ 
+static void from_json(const ofJson& j, ofApp::eyeMovementState& state)
+{
+	try {
+		j.at("name").get_to(state.name);
+		j.at("moveIntervalMin").get_to(state.moveIntervalMin);
+		j.at("moveIntervalMax").get_to(state.moveIntervalMax);
+		j.at("targetIntervalMin").get_to(state.targetIntervalMin);
+		j.at("targetIntervalMax").get_to(state.targetIntervalMax);
+		j.at("stateIntervalMin").get_to(state.stateIntervalMin);
+		j.at("stateIntervalMax").get_to(state.stateIntervalMax);
+	}
+	catch (const ofJson::exception& e) {
+			std::cout << e.what() << std::endl;
+	}
+}
+
 //--------------------------------------------------------------
 ofJson ofApp::saveConfig() {
 	ofJson jconf;
@@ -94,6 +123,11 @@ void ofApp::setup() {
 	drawMargin = 4;
 	drawScale = 25;
 	loadConfig();
+	
+	gui.setup(nullptr, false, ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable, true);
+	ImGui::StyleColorsLight();
+	
+	loadStates();
 
 	stateMicrowaveSensor = "1"; //pull-down logic
 	
@@ -155,8 +189,14 @@ void ofApp::setup() {
 //--------------------------------------------------------------
 void ofApp::update(){
 	currentMillis = ofGetElapsedTimeMillis();
+	if (currentMillis - lastStateMillis > stateInterval) {
+		iSelectedStateIndex = ofRandom(0, vEyeMovementStates.size());
+		setEyeMovementState(vEyeMovementStates[iSelectedStateIndex]);
+	};
+
 	pixile.update();
 	
+	lightsOn = pixile.LightsOn();
 	if (pixile.SoundsOn() != soundsOn) {
 		soundsOn = pixile.SoundsOn();
 		PixelEyes.Eyeballs.setSoundOn(soundsOn);
@@ -221,37 +261,28 @@ void ofApp::setState(eState state){
 
 //--------------------------------------------------------------
 void ofApp::draw(){
-	// Drawing is just for debugging :)
-	if(soundsOn) {
-		ofDrawBitmapString("SOUND ON", 20, 20);
-	} else {
-		ofDrawBitmapString("SOUND OFF", 20, 20);
-	}
-	
-	if(pixile.LightsOn()){
-		ofDrawBitmapString("LIGHT ON", 20, 40);
-	} else {
-		ofDrawBitmapString("LIGHT OFF", 20, 40);
-	}
-	
-	if (mapUpsideDown) {
-		ofDrawBitmapString("MAPPING INVERTED (u)", 20, 60);
-	} else {
-		ofDrawBitmapString("MAPPING STANDARD (u)", 20, 60);
-	}
-
-	if(stateMicrowaveSensor == "0"){
-		ofDrawBitmapString("TRIGGER", 20, 80);
-	}
 
 	// Draw Preview ...
-	static const int startX = 180;
-	static const int startY = 100;
+	static const int startX = 100;
+	static const int startY = 50;
 	for (int i = 0; i < numPCBs; i++) {
 		float x = startX + (i * (6 * drawScale)) + (i * (drawMargin * drawScale));
 		float y = startY;
 		outputTexture.getTexture().drawSubsection(x, y, 0, (6 * drawScale), (6 * drawScale), i * 6, 0, 6, 6);
 	}
+	
+	gui.begin();
+
+	// Define the ofWindow as a docking space
+	ImGuiID dockNodeID = ImGui::DockSpaceOverViewport(NULL, ImGuiDockNodeFlags_PassthruCentralNode);
+
+	// Draw some windows
+	drawAppSettingsWindow();	
+	drawEyeSettingsWindow();
+	drawStateCollectionWindow();
+
+	gui.end();
+	gui.draw();
 }
 
 //--------------------------------------------------------------
@@ -276,10 +307,16 @@ void ofApp::keyPressed(int key){
 	} else if (key == 'n') { // n for Numbers
 		switch(currentState){
 			case es_Eyes:
-				setState(es_Numbers);
-				stateNumberStartMillis = currentMillis;
-				freshStateNumberDuration();
-				ofLog() << "Setting State Numbers" << currentState << std::endl;
+				if (soundPlayer1.ready() && soundPlayer2.ready()){
+					setState(es_Numbers);
+					stateNumberStartMillis = currentMillis;
+					freshStateNumberDuration();
+					ofLog() << "Setting State Numbers" << currentState << std::endl;
+				} else {
+					ofLog() << "Ignored State Number request as Guru was speaking, did not reset the timer." << currentState << std::endl;
+				}
+				
+				
 				break;
 			case es_Numbers:
 				setState(es_Eyes);
@@ -343,9 +380,183 @@ void ofApp::gotMessage(ofMessage msg){
 }
 
 //--------------------------------------------------------------
+void ofApp::setEyeMovementState(eyeMovementState s){
+	PixelEyes.Eyeballs.moveIntervalMin   = s.moveIntervalMin;
+	PixelEyes.Eyeballs.moveIntervalMax   = s.moveIntervalMax;
+	PixelEyes.Eyeballs.targetIntervalMin = s.targetIntervalMin;
+	PixelEyes.Eyeballs.targetIntervalMax = s.targetIntervalMax;
+	PixelEyes.Eyeballs.freshMoveInterval();
+	PixelEyes.Eyeballs.freshTargetInterval();
+	freshStateInterval();
+}
+
+//--------------------------------------------------------------
+void ofApp::addCurrentState(std::string name /*="Untitled"*/) {
+	eyeMovementState state = {
+		name,
+		PixelEyes.Eyeballs.moveIntervalMin,
+		PixelEyes.Eyeballs.moveIntervalMax,
+		PixelEyes.Eyeballs.targetIntervalMin,
+		PixelEyes.Eyeballs.targetIntervalMax,
+		10000,
+		60000,
+	};
+	vEyeMovementStates.push_back(state);
+}
+
+//--------------------------------------------------------------
+void ofApp::saveStates() {
+	ofSavePrettyJson("EyeMovementStates.json", vEyeMovementStates);
+}
+
+//--------------------------------------------------------------
+void ofApp::loadStates() {
+	vEyeMovementStates.clear();
+	ofJson loaded = ofLoadJson("EyeMovementStates.json");
+	if(!loaded.empty()) loaded.get_to(vEyeMovementStates);
+	if (vEyeMovementStates.size() < 1) addCurrentState();
+}
+
+//--------------------------------------------------------------
+void ofApp::freshStateInterval() {
+	lastStateMillis = currentMillis;
+	stateInterval = ofRandom(vEyeMovementStates[iSelectedStateIndex].stateIntervalMin, vEyeMovementStates[iSelectedStateIndex].stateIntervalMax);
+}
+
+//--------------------------------------------------------------
+void ofApp::drawAppSettingsWindow() {
+	ImGui::Begin("App Settings");
+
+	ImGui::Checkbox("Sound", &soundsOn);
+	ImGui::Checkbox("Light", &lightsOn);
+	ImGui::Spacing();
+	ImGui::Checkbox("Reverse Mapping", &mapUpsideDown);
+
+	ImGui::End();
+}
+
+//--------------------------------------------------------------
+void ofApp::drawEyeSettingsWindow() {
+	ImGui::Begin("Current");
+	ImGui::Checkbox("Allow Change Colour On Blink", &PixelEyes.Eyeballs.changeColourOnBlink);
+	
+	ImGui::Separator();
+	ImGui::PushItemWidth(50);
+	ImGui::DragScalar("Move Interval Min", ImGuiDataType_U32, &PixelEyes.Eyeballs.moveIntervalMin, 10);
+	ImGui::DragScalar("Move Interval Max", ImGuiDataType_U32, &PixelEyes.Eyeballs.moveIntervalMax, 10);
+	ImGui::DragScalar("Target Interval Min", ImGuiDataType_U32, &PixelEyes.Eyeballs.targetIntervalMin, 10);
+	ImGui::DragScalar("Target Interval Max", ImGuiDataType_U32, &PixelEyes.Eyeballs.targetIntervalMax, 10);
+	ImGui::PopItemWidth();
+	
+	ImGui::Spacing();
+	if (ImGui::Button("Add to state collection"))
+	{
+		addCurrentState();
+	}
+	ImGui::Separator();
+
+	ImGui::End();
+}
+
+//--------------------------------------------------------------
+void ofApp::drawStateCollectionWindow() {
+	ImGui::Begin("State Collection");
+	
+	if (vEyeMovementStates.size() > 0) {
+		if (ImGui::BeginTable("State Collection", 1+vEyeMovementStates.size()))
+		{
+			for (int row = 0; row < 7; row++)
+			{
+				if (row == 0)
+				{
+					ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+					ImGui::TableNextColumn();
+					if (ImGui::Button("Save"))
+					{
+						saveStates();
+					}
+				}
+				else
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					std::string sRowName = "";
+					switch (row-1)
+					{
+					case 0:
+						sRowName = "Move Interval Min";
+						break;
+					case 1:
+						sRowName = "Move Interval Max";
+						break;
+					case 2:
+						sRowName = "Target Interval Min";
+						break;
+					case 3:
+						sRowName = "Target Interval Max";
+						break;
+					case 4:
+						sRowName = "State Interval Min";
+						break;
+					case 5:
+						sRowName = "State Interval Max";
+						break;
+					default:
+						sRowName = "Bad DATA";
+						break;
+					}
+					ImGui::Text(sRowName.c_str());
+				}
+
+				ImGui::TableSetColumnIndex(0);
+				
+				for (int column = 0; column < vEyeMovementStates.size(); column++)
+				{
+					ImGui::TableSetColumnIndex(1 + column);
+					if (row == 0)
+					{
+						// check if active state.
+						if (column == iSelectedStateIndex)
+						{
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+							ImGui::TableHeader(vEyeMovementStates[column].name.c_str());							
+							ImGui::PopStyleColor();
+						}
+						else {
+							ImGui::TableHeader(vEyeMovementStates[column].name.c_str());
+							if (ImGui::IsItemClicked(0))
+							{
+								// Change to this state.
+								iSelectedStateIndex = column;
+								setEyeMovementState(vEyeMovementStates[column]);
+							}
+						}
+					}
+					else {
+						
+						std::string sName;
+						sName = "###" + std::to_string(row) + " " + std::to_string(column);
+						ImGui::DragScalar(sName.c_str(), ImGuiDataType_U32, &vEyeMovementStates[column].values[row-1], 10);
+					}
+				}
+			}
+			ImGui::EndTable();
+		}
+	}
+
+	ImGui::End();
+}
+
+//--------------------------------------------------------------
 void ofApp::playSound(std::string fileName) {
 	if(!soundsOn) return;
-	if (soundPlayer.ready()) soundPlayer.play(fileName);
+	if (soundPlayer1.ready()){
+		soundPlayer1.play(fileName);
+	} else if (soundPlayer2.ready()) {
+		soundPlayer2.play(fileName);
+	} else {
+		ofLog() << "Failed to play file " << fileName;
+	}
 }
 
 //--------------------------------------------------------------
@@ -353,8 +564,14 @@ void ofApp::playQuote(int quoteID) {
 	if(!soundsOn) return;
  	if(currentState != es_Eyes) setState(es_Eyes);
 
-	// Make sure eyes are not sleeping on speech
-	PixelEyes.Eyeballs.sleep(false);
+	// Make sure state is on Eye state
+	if(PixelEyes.Eyeballs.getState() != eye_Normal) {
+	    PixelEyes.Eyeballs.setState(eye_Normal);
+	} else {
+		// Make sure eyes are not sleeping on speech
+		PixelEyes.Eyeballs.sleep(false);
+	}
+
 	playSound("MOUNTAINS_QUOTE_" + std::to_string(quoteID) + ".wav");
 }
 
@@ -365,7 +582,7 @@ void ofApp::setEyeballColor(ofColor c){
 
 //--------------------------------------------------------------
 void ofApp::exit(){
-#ifdef __linux__
+#ifdef __arm__
 	apa.clearAPA102(numLed+5);
 #endif
 	ofExit(0);

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ofMain.h"
+#include "ofxImGui.h"
+#include "imgui_internal.h"
 #include "ofxPixileComms.h"
 #include "ofxPixelEyes.h"
 #include "Eyeball.h"
@@ -36,6 +38,26 @@ class ofApp : public ofBaseApp {
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		
+		struct eyeMovementState {
+			std::string name;
+			union {
+				struct {
+					uint32_t moveIntervalMin;
+					uint32_t moveIntervalMax;
+					uint32_t targetIntervalMin;
+					uint32_t targetIntervalMax;
+					uint32_t stateIntervalMin;
+					uint32_t stateIntervalMax;
+				};
+				uint32_t values[6];
+			};
+		};
+
+		void setEyeMovementState(eyeMovementState s);
+		void addCurrentState(std::string name ="Untitled");
+		void saveStates();
+		void loadStates();
+
 		void playSound(std::string cmd);
 		void playQuote(int quoteID);
 		void setEyeballColor(ofColor c);
@@ -83,13 +105,26 @@ class ofApp : public ofBaseApp {
 #ifdef __arm__
 		LED apa;
 #endif
-		SoundPlayer soundPlayer;
+		ofxImGui::Gui gui;
+		std::vector<eyeMovementState> vEyeMovementStates;
+		int iSelectedStateIndex=0;
+		void drawEyeSettingsWindow();
+		void drawStateCollectionWindow();
+		void drawAppSettingsWindow();
+
+		SoundPlayer soundPlayer1;
+		SoundPlayer soundPlayer2;
 
 		int myNetworkID;
 		int drawMargin;
 		int drawScale;
 		eState currentState;
+		
 		uint64_t currentMillis;
+		
+		uint64_t lastStateMillis;
+		uint32_t stateInterval;
+		void freshStateInterval();
 		
 		uint64_t lastStateNumberMillis;
 		uint16_t stateNumberInterval;
@@ -123,6 +158,7 @@ class ofApp : public ofBaseApp {
 		
 		ofxPixileComms pixile;
 		bool soundsOn;
+		bool lightsOn;
 
 		ofFbo outputTexture;
 };

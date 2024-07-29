@@ -596,10 +596,13 @@ void ofApp::doStateEyes(){
 	PixelEyes.Eyeballs.draw(6, 0);
 	outputTexture.end();
 
-	if(currentMillis - lastStateNumberMillis > stateNumberInterval){
-		currentState = es_Numbers;
-		stateNumberStartMillis = currentMillis;
-		freshStateNumberDuration();
+	if(currentMillis - lastStateNumberMillis > stateNumberInterval) {
+		// Don't change state if eyes are sleeping
+		if (!PixelEyes.Eyeballs.isSleeping()) {
+			currentState = es_Numbers;
+			stateNumberStartMillis = currentMillis;
+		}
+		freshStateNumberDuration(); // Try again later
 	}
 }
 

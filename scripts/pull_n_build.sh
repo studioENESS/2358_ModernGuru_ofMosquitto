@@ -1,5 +1,7 @@
 #!/bin/bash
 
+killall client.sh ofMosquitto
+
 if test -d /home/pi/openFrameworks/addons/ofxPixileComms; then
   cd /home/pi/openFrameworks/addons/ofxPixileComms
   git pull
@@ -13,7 +15,7 @@ if test -d /home/pi/openFrameworks/addons/ofxPixelEyes; then
   git pull
 else
   cd /home/pi/openFrameworks/addons/
-  git clone clone https://github.com/studioENESS/ofxPixelEyes
+  git clone https://github.com/studioENESS/ofxPixelEyes
 fi
 
 if test -d /home/pi/openFrameworks/addons/ofxImGui; then
@@ -21,7 +23,7 @@ if test -d /home/pi/openFrameworks/addons/ofxImGui; then
   git pull
 else
   cd /home/pi/openFrameworks/addons/
-  git clone clone -b develop https://github.com/ofxyz/ofxImGui
+  git clone -b develop https://github.com/ofxyz/ofxImGui
 fi
 
 if test -d /home/pi/openFrameworks/apps/2358_ModernGuru_ofMosquitto; then

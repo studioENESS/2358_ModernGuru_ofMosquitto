@@ -30,6 +30,8 @@ fi
 
 if test -d /home/pi/openFrameworks/apps/2358_ModernGuru_ofMosquitto; then
   cd /home/pi/openFrameworks/apps/2358_ModernGuru_ofMosquitto/ofMosquitto
-  git pull
+  #git pull () #imgui.ini might have changed but needs to be in sync
+  git fetch --all
+  git reset --hard origin/master
   make clean && make
 fi

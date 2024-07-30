@@ -12,7 +12,9 @@ fi
 
 if test -d /home/pi/openFrameworks/addons/ofxPixelEyes; then
   cd /home/pi/openFrameworks/addons/ofxPixelEyes
-  git pull
+  #git pull () #imgui.ini might have changed but needs to be in sync 
+  git fetch --all
+  git reset --hard origin/master
 else
   cd /home/pi/openFrameworks/addons/
   git clone https://github.com/studioENESS/ofxPixelEyes

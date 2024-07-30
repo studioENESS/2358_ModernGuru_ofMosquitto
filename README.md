@@ -51,6 +51,16 @@ Write the following into the mosquitto.desktop file.
     Name=Mosquitto
     Exec=/usr/bin/bash /home/pi/openFrameworks/apps/2358_ModernGuru_ofMosquitto/scripts/client.sh
 
+## Config Static IP for WiFi
+
+> Start IP for Mosquittos is 30
+
+    interface wlan0
+    static ip_address=192.168.0.30/24
+    static routers=192.168.0.255
+    static domain_name_servers=192.168.0.255
+
+
 ![preview](img/eness_logo.png)
 
 

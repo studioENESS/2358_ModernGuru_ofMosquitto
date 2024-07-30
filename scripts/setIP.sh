@@ -17,7 +17,7 @@ else
         exit 1
     fi
 
-    echo "\n" >> /etc/dhcpcd.conf
+    echo "" >> /etc/dhcpcd.conf
     echo "interface wlan0" >> /etc/dhcpcd.conf
     echo "ip_address=192.168.0.${last_number}/24" >> /etc/dhcpcd.conf
     echo "routers=192.168.0.255" >> /etc/dhcpcd.conf

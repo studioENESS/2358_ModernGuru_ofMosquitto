@@ -19,9 +19,9 @@ else
 
     echo "" >> /etc/dhcpcd.conf
     echo "interface wlan0" >> /etc/dhcpcd.conf
-    echo "ip_address=192.168.0.${last_number}/24" >> /etc/dhcpcd.conf
-    echo "routers=192.168.0.255" >> /etc/dhcpcd.conf
-    echo "domain_name_servers=192.168.0.255" >> /etc/dhcpcd.conf
+    echo "static ip_address=192.168.0.${last_number}/24" >> /etc/dhcpcd.conf
+    echo "static routers=192.168.0.255" >> /etc/dhcpcd.conf
+    echo "static domain_name_servers=192.168.0.250 8.8.8.8" >> /etc/dhcpcd.conf
 fi
 
 echo "Done!"

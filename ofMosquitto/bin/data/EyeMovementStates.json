@@ -2,7 +2,7 @@
     {
         "moveIntervalMax": 250,
         "moveIntervalMin": 50,
-        "name": "Untitled",
+        "name": "Normal",
         "stateIntervalMax": 32000,
         "stateIntervalMin": 8000,
         "targetIntervalMax": 7000,
@@ -11,7 +11,7 @@
     {
         "moveIntervalMax": 120,
         "moveIntervalMin": 10,
-        "name": "Untitled",
+        "name": "Seek",
         "stateIntervalMax": 16000,
         "stateIntervalMin": 8000,
         "targetIntervalMax": 1200,
@@ -20,7 +20,7 @@
     {
         "moveIntervalMax": 30,
         "moveIntervalMin": 10,
-        "name": "Untitled",
+        "name": "Freak",
         "stateIntervalMax": 1000,
         "stateIntervalMin": 500,
         "targetIntervalMax": 70,

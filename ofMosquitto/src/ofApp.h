@@ -38,6 +38,18 @@ class ofApp : public ofBaseApp {
 		void dragEvent(ofDragInfo dragInfo);
 		void gotMessage(ofMessage msg);
 		
+		enum eStateApp {
+			esa_Eyes = 0,
+			esa_Numbers,
+			esa_Count
+		};
+
+		void setState(eStateApp state);
+
+		eStateApp getState() {
+			return currentStateApp;
+		};
+
 		struct eyeMovementState {
 			std::string name;
 			union {
@@ -52,10 +64,21 @@ class ofApp : public ofBaseApp {
 				uint32_t values[6];
 			};
 		};
+		
+		struct appState {
+			std::string name;
+			eStateApp state;
+			union {
+				struct {
+					uint32_t stateIntervalMin;
+					uint32_t stateIntervalMax;
+				};
+				uint32_t values[2];
+			};
+		};
 
 		void setEyeMovementState(eyeMovementState s);
 		void addCurrentState(std::string name ="Untitled");
-		void saveStates();
 		void loadStates();
 
 		void playSound(std::string cmd);
@@ -65,18 +88,6 @@ class ofApp : public ofBaseApp {
 		GPIO* gpioMicrowaveSensor;
 #endif
 		std::string stateMicrowaveSensor;
-		
-		enum eState {
-			es_Eyes = 0,
-			es_Numbers,
-			es_Count
-		};
-		
-		void setState(eState state);
-	
-		eState getState(){
-			return currentState;
-		};
 
 		const int numberMap[2][36] = {
 		  { // 0
@@ -106,10 +117,16 @@ class ofApp : public ofBaseApp {
 		LED apa;
 #endif
 		ofxImGui::Gui gui;
+
+		eStateApp currentStateApp;
+		std::vector<appState> vStatesApp;
+
+		int iSelectedStateEyeIndex = 0;
 		std::vector<eyeMovementState> vEyeMovementStates;
-		int iSelectedStateIndex=0;
+
 		void drawEyeSettingsWindow();
-		void drawStateCollectionWindow();
+		void drawEyeStateCollectionWindow();
+		void drawAppStateCollectionWindow();
 		void drawAppSettingsWindow();
 
 		SoundPlayer soundPlayer1;
@@ -118,33 +135,28 @@ class ofApp : public ofBaseApp {
 		int myNetworkID;
 		int drawMargin;
 		int drawScale;
-		eState currentState;
 		
+
 		uint64_t currentMillis;
+		//--------------------------------------
+		// State App
+		uint64_t lastStateAppMillis;
+		uint32_t stateAppInterval;
+		void freshStateAppInterval();
 		
-		uint64_t lastStateMillis;
-		uint32_t stateInterval;
-		void freshStateInterval();
-		
-		uint64_t lastStateNumberMillis;
-		uint16_t stateNumberInterval;
-		uint16_t stateNumberIntervalMin;
-		uint16_t stateNumberIntervalMax;
-		
-		uint64_t stateNumberStartMillis;
-		uint16_t stateNumberDuration;
-		uint16_t stateNumberDurationMin;
-		uint16_t stateNumberDurationMax;
-		void freshStateNumberDuration();
-		
+		// State Eye Movement
+		uint64_t lastStateEyeMovementMillis;
+		uint32_t stateEyeMovementInterval;
+		void freshStateEyeMovementInterval();
+		//--------------------------------------
+
 		uint64_t lastNewNumberMillis;
-		uint16_t newNumberInterval;
+		uint32_t newNumberInterval;
 
 		void doStateEyes();
 		void doStateNumbers();
 	
 		void newRandomNumbers();
-		void freshStateNumberInterval();
 		std::vector<int> randomNumbers;
 
 		void initPixelData(); 

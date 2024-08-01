@@ -1,0 +1,14 @@
+[
+    {
+        "name": "Eyes",
+        "state": 0,
+        "stateIntervalMax": 50000,
+        "stateIntervalMin": 20000
+    },
+    {
+        "name": "Numbers",
+        "state": 1,
+        "stateIntervalMax": 9000,
+        "stateIntervalMin": 3000
+    }
+]

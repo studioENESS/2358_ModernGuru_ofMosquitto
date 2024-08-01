@@ -1,8 +1,31 @@
 #include "ofApp.h"
 
-static void to_json(ofJson& j, const ofApp::eyeMovementState& state)
+static void to_json(ofJson& j, const ofApp::appState& state)
 {
 	j = ofJson {
+		{ "name", state.name },
+		{ "state", state.state },
+		{ "stateIntervalMin", state.stateIntervalMin },
+		{ "stateIntervalMax", state.stateIntervalMax }
+	};
+}
+ 
+static void from_json(const ofJson& j, ofApp::appState& state)
+{
+	try {
+		j.at("name").get_to(state.name);
+		j.at("state").get_to(state.state);
+		j.at("stateIntervalMin").get_to(state.stateIntervalMin);
+		j.at("stateIntervalMax").get_to(state.stateIntervalMax);
+	}
+	catch (const ofJson::exception& e) {
+			std::cout << e.what() << std::endl;
+	}
+}
+
+static void to_json(ofJson& j, const ofApp::eyeMovementState& state)
+{
+	j = ofJson{
 		{ "name", state.name },
 		{ "moveIntervalMin", state.moveIntervalMin },
 		{ "moveIntervalMax", state.moveIntervalMax },
@@ -12,7 +35,7 @@ static void to_json(ofJson& j, const ofApp::eyeMovementState& state)
 		{ "stateIntervalMax", state.stateIntervalMax }
 	};
 }
- 
+
 static void from_json(const ofJson& j, ofApp::eyeMovementState& state)
 {
 	try {
@@ -25,7 +48,7 @@ static void from_json(const ofJson& j, ofApp::eyeMovementState& state)
 		j.at("stateIntervalMax").get_to(state.stateIntervalMax);
 	}
 	catch (const ofJson::exception& e) {
-			std::cout << e.what() << std::endl;
+		std::cout << e.what() << std::endl;
 	}
 }
 
@@ -67,18 +90,12 @@ ofJson ofApp::getSettings() {
 	settings["brightness"]  = brightness;
 	
 	// START TIMERS \\---------------------------------------------
-	// How long before the numbers appear
-	settings["stateNumberIntervalMin"] = stateNumberIntervalMin;
-	settings["stateNumberIntervalMax"] = stateNumberIntervalMax;
-	// How long the numbers appear for
-	settings["stateNumberDurationMin"] = stateNumberDurationMin;
-	settings["stateNumberDurationMax"] = stateNumberDurationMax;
+	// TODO Save App State settings here
 	// The speed of number change
 	settings["newNumberInterval"]      = newNumberInterval;
 	// END TIMERS -------------------------------------------------
 
 	settings["pixelEyeSettings"] = PixelEyes.getSettings();
-
 
 	return settings;
 }
@@ -92,12 +109,7 @@ void ofApp::setSettings(ofJson settings) {
 	brightness  = settings.value("brightness" , brightness);
 
 	// START TIMERS \\---------------------------------------------
-	// How long before the numbers appear
-	stateNumberIntervalMin = settings.value("stateNumberIntervalMin", stateNumberIntervalMin);
-	stateNumberIntervalMax = settings.value("stateNumberIntervalMax", stateNumberIntervalMax);
-	// How long the numbers appear for
-	stateNumberDurationMin = settings.value("stateNumberDurationMin", stateNumberDurationMin);
-	stateNumberDurationMax = settings.value("stateNumberDurationMax", stateNumberDurationMax);
+	// TODO Load App States
 	// The speed of number change
 	newNumberInterval      = settings.value("newNumberInterval", newNumberInterval);
 	// END TIMERS -------------------------------------------------
@@ -126,8 +138,6 @@ void ofApp::setup() {
 	
 	gui.setup(nullptr, false, ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable, true);
 	ImGui::StyleColorsLight();
-	
-	loadStates();
 
 	stateMicrowaveSensor = "1"; //pull-down logic
 	
@@ -143,7 +153,7 @@ void ofApp::setup() {
 		randomNumbers.push_back(ofRandom(0,2));
 	}
 
-	currentState = es_Eyes;
+	currentStateApp = esa_Eyes;
 	
 	soundsOn = true;
 	ofSeedRandom();
@@ -159,20 +169,9 @@ void ofApp::setup() {
 #endif
 
 	currentMillis = ofGetElapsedTimeMillis();
-	lastStateNumberMillis = currentMillis;
-	lastStateNumberMillis = currentMillis;
+	lastStateAppMillis = currentMillis;
+	lastStateEyeMovementMillis = currentMillis;
 	lastNewNumberMillis = currentMillis;
-	stateNumberStartMillis = currentMillis;
-
-	// How long before the numbers appear
-	stateNumberIntervalMin = 20000;
-	stateNumberIntervalMax = 50000;
-	stateNumberInterval = stateNumberIntervalMin;
-	
-	// How long the numbers appear for
-	stateNumberDurationMin =  3000;
-	stateNumberDurationMax =  9000;
-	stateNumberDuration = stateNumberDurationMin;
 	
 	// The speed of number change
 	newNumberInterval = 250;
@@ -184,14 +183,26 @@ void ofApp::setup() {
 	pixile.Server_port(3637);
 	pixile.SetupSockets();
 	pixile.SetMessageHandler(&PixileMessageHandler, this);
+
+	loadStates();
+
+	// Set State Collection Timers 
+	freshStateAppInterval();
+	freshStateEyeMovementInterval();
 }
 
 //--------------------------------------------------------------
 void ofApp::update(){
 	currentMillis = ofGetElapsedTimeMillis();
-	if (currentMillis - lastStateMillis > stateInterval) {
-		iSelectedStateIndex = ofRandom(0, vEyeMovementStates.size());
-		setEyeMovementState(vEyeMovementStates[iSelectedStateIndex]);
+	// Update App State
+	if (currentMillis - lastStateAppMillis > stateAppInterval) {
+		setState((eStateApp)(((int)currentStateApp + 1) % vStatesApp.size()));
+	}
+
+	// Update Eye Movement State
+	if (currentMillis - lastStateEyeMovementMillis > stateEyeMovementInterval) {
+		iSelectedStateEyeIndex = ofRandom(0, vEyeMovementStates.size());
+		setEyeMovementState(vEyeMovementStates[iSelectedStateEyeIndex]);
 	};
 
 	pixile.update();
@@ -202,12 +213,12 @@ void ofApp::update(){
 		PixelEyes.Eyeballs.setSoundOn(soundsOn);
 	}
 
-	switch (currentState) {
-		case es_Eyes:
+	switch (currentStateApp) {
+		case esa_Eyes:
 			PixelEyes.update();
 			doStateEyes();
 			break;
-		case es_Numbers:
+		case esa_Numbers:
 			doStateNumbers();
 			break;
 	};
@@ -255,8 +266,22 @@ void ofApp::update(){
 }
 
 //--------------------------------------------------------------
-void ofApp::setState(eState state){
-	currentState = state;
+void ofApp::setState(eStateApp toState) {
+	switch (toState) {
+	case esa_Numbers:
+		// Don't change state if eyes are sleeping
+		if (!PixelEyes.Eyeballs.isSleeping()) {
+			currentStateApp = toState;
+		}
+		break;
+	case esa_Eyes:
+		currentStateApp = toState;
+		break;
+	default:
+		ofLog(OF_LOG_WARNING) << "Not a valid app state: " << toState << std::endl;
+	}
+
+	freshStateAppInterval();
 }
 
 //--------------------------------------------------------------
@@ -279,7 +304,8 @@ void ofApp::draw(){
 	// Draw some windows
 	drawAppSettingsWindow();	
 	drawEyeSettingsWindow();
-	drawStateCollectionWindow();
+	drawEyeStateCollectionWindow();
+	drawAppStateCollectionWindow();
 
 	gui.end();
 	gui.draw();
@@ -305,22 +331,20 @@ void ofApp::keyPressed(int key){
 	} else if (key == 'b') { // b for Blink
 		PixelEyes.Eyeballs.blink();
 	} else if (key == 'n') { // n for Numbers
-		switch(currentState){
-			case es_Eyes:
+		switch(currentStateApp){
+			case esa_Eyes:
 				if (soundPlayer1.ready() && soundPlayer2.ready()){
-					setState(es_Numbers);
-					stateNumberStartMillis = currentMillis;
-					freshStateNumberDuration();
-					ofLog() << "Setting State Numbers" << currentState << std::endl;
+					setState(esa_Numbers);
+					ofLog() << "Setting State Numbers" << currentStateApp << std::endl;
 				} else {
-					ofLog() << "Ignored State Number request as Guru was speaking, did not reset the timer." << currentState << std::endl;
+					ofLog() << "Ignored State Number request as Guru was speaking, did not reset the timer." << currentStateApp << std::endl;
 				}
 				
 				
 				break;
-			case es_Numbers:
-				setState(es_Eyes);
-				ofLog() << "Setting State Eyes" << currentState << std::endl;
+			case esa_Numbers:
+				setState(esa_Eyes);
+				ofLog() << "Setting State Eyes" << currentStateApp << std::endl;
 				break;
 			default:
 				ofLog() << "Key " << key << " pressed." << std::endl;
@@ -387,7 +411,7 @@ void ofApp::setEyeMovementState(eyeMovementState s){
 	PixelEyes.Eyeballs.targetIntervalMax = s.targetIntervalMax;
 	PixelEyes.Eyeballs.freshMoveInterval();
 	PixelEyes.Eyeballs.freshTargetInterval();
-	freshStateInterval();
+	freshStateEyeMovementInterval();
 }
 
 //--------------------------------------------------------------
@@ -405,22 +429,43 @@ void ofApp::addCurrentState(std::string name /*="Untitled"*/) {
 }
 
 //--------------------------------------------------------------
-void ofApp::saveStates() {
-	ofSavePrettyJson("EyeMovementStates.json", vEyeMovementStates);
-}
-
-//--------------------------------------------------------------
 void ofApp::loadStates() {
 	vEyeMovementStates.clear();
 	ofJson loaded = ofLoadJson("EyeMovementStates.json");
 	if(!loaded.empty()) loaded.get_to(vEyeMovementStates);
 	if (vEyeMovementStates.size() < 1) addCurrentState();
+
+	vStatesApp.clear();
+	loaded = ofLoadJson("AppStates.json");
+	if (!loaded.empty()) loaded.get_to(vStatesApp);
+	if (vStatesApp.size() < 1) {
+		// Add init app states
+		vStatesApp.push_back({
+			"Eyes",
+			esa_Eyes,
+			20000,
+			50000
+			});
+
+		vStatesApp.push_back({
+			"Numbers",
+			esa_Numbers,
+			3000,
+			9000
+			});
+	};
 }
 
 //--------------------------------------------------------------
-void ofApp::freshStateInterval() {
-	lastStateMillis = currentMillis;
-	stateInterval = ofRandom(vEyeMovementStates[iSelectedStateIndex].stateIntervalMin, vEyeMovementStates[iSelectedStateIndex].stateIntervalMax);
+void ofApp::freshStateAppInterval() {
+	lastStateAppMillis = currentMillis;
+	stateAppInterval = ofRandom(vStatesApp[(int)currentStateApp].stateIntervalMin, vStatesApp[(int)currentStateApp].stateIntervalMax);
+}
+
+//--------------------------------------------------------------
+void ofApp::freshStateEyeMovementInterval() {
+	lastStateEyeMovementMillis = currentMillis;
+	stateEyeMovementInterval = ofRandom(vEyeMovementStates[iSelectedStateEyeIndex].stateIntervalMin, vEyeMovementStates[iSelectedStateEyeIndex].stateIntervalMax);
 }
 
 //--------------------------------------------------------------
@@ -457,10 +502,82 @@ void ofApp::drawEyeSettingsWindow() {
 
 	ImGui::End();
 }
-
 //--------------------------------------------------------------
-void ofApp::drawStateCollectionWindow() {
-	ImGui::Begin("State Collection");
+void ofApp::drawAppStateCollectionWindow() {
+	ImGui::Begin("App State");
+
+	if (vStatesApp.size() > 0) {
+		if (ImGui::BeginTable("App State", 1 + vStatesApp.size()))
+		{
+			for (int row = 0; row < 3; row++)
+			{
+				if (row == 0)
+				{
+					ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+					ImGui::TableNextColumn();
+					if (ImGui::Button("Save"))
+					{
+						ofSavePrettyJson("AppStates.json", vStatesApp);
+					}
+				}
+				else
+				{
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					std::string sRowName = "";
+					switch (row - 1)
+					{
+					case 0:
+						sRowName = "State Interval Min";
+						break;
+					case 1:
+						sRowName = "State Interval Max";
+						break;
+					default:
+						sRowName = "Bad DATA";
+						break;
+					}
+					ImGui::Text(sRowName.c_str());
+				}
+
+				ImGui::TableSetColumnIndex(0);
+
+				for (int column = 0; column < vStatesApp.size(); column++)
+				{
+					ImGui::TableSetColumnIndex(1 + column);
+					if (row == 0)
+					{
+						// check if active state.
+						if (column == currentStateApp)
+						{
+							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
+							ImGui::TableHeader(vStatesApp[column].name.c_str());
+							ImGui::PopStyleColor();
+						}
+						else {
+							ImGui::TableHeader(vStatesApp[column].name.c_str());
+							if (ImGui::IsItemClicked(0))
+							{
+								setState(vStatesApp[column].state);
+							}
+						}
+					}
+					else {
+						std::string sName;
+						sName = "###" + std::to_string(row) + " " + std::to_string(column);
+						ImGui::DragScalar(sName.c_str(), ImGuiDataType_U32, &vStatesApp[column].values[row - 1], 10);
+					}
+				}
+			}
+			ImGui::EndTable();
+		}
+	}
+
+	ImGui::End();
+}
+//--------------------------------------------------------------
+void ofApp::drawEyeStateCollectionWindow() {
+	ImGui::Begin("Eye State");
 	
 	if (vEyeMovementStates.size() > 0) {
 		if (ImGui::BeginTable("State Collection", 1+vEyeMovementStates.size()))
@@ -473,7 +590,7 @@ void ofApp::drawStateCollectionWindow() {
 					ImGui::TableNextColumn();
 					if (ImGui::Button("Save"))
 					{
-						saveStates();
+						ofSavePrettyJson("EyeMovementStates.json", vEyeMovementStates);
 					}
 				}
 				else
@@ -516,7 +633,7 @@ void ofApp::drawStateCollectionWindow() {
 					if (row == 0)
 					{
 						// check if active state.
-						if (column == iSelectedStateIndex)
+						if (column == iSelectedStateEyeIndex)
 						{
 							ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1, 0, 0, 1));
 							ImGui::TableHeader(vEyeMovementStates[column].name.c_str());							
@@ -527,7 +644,7 @@ void ofApp::drawStateCollectionWindow() {
 							if (ImGui::IsItemClicked(0))
 							{
 								// Change to this state.
-								iSelectedStateIndex = column;
+								iSelectedStateEyeIndex = column;
 								setEyeMovementState(vEyeMovementStates[column]);
 							}
 						}
@@ -562,7 +679,7 @@ void ofApp::playSound(std::string fileName) {
 //--------------------------------------------------------------
 void ofApp::playQuote(int quoteID) {
 	if(!soundsOn) return;
- 	if(currentState != es_Eyes) setState(es_Eyes);
+ 	if(currentStateApp != esa_Eyes) setState(esa_Eyes);
 
 	// Make sure state is on Eye state
 	if(PixelEyes.Eyeballs.getState() != eye_Normal) {
@@ -595,15 +712,6 @@ void ofApp::doStateEyes(){
 	PixelEyes.Eyeballs.draw(0, 0);
 	PixelEyes.Eyeballs.draw(6, 0);
 	outputTexture.end();
-
-	if(currentMillis - lastStateNumberMillis > stateNumberInterval) {
-		// Don't change state if eyes are sleeping
-		if (!PixelEyes.Eyeballs.isSleeping()) {
-			currentState = es_Numbers;
-			stateNumberStartMillis = currentMillis;
-		}
-		freshStateNumberDuration(); // Try again later
-	}
 }
 
 //--------------------------------------------------------------
@@ -636,11 +744,6 @@ void ofApp::doStateNumbers(){
 	ofPopStyle();
 	outputTexture.end();
 
-	// Get out of this state!
-	if(currentMillis - stateNumberStartMillis > stateNumberDuration) {
-		currentState = es_Eyes;
-		lastStateNumberMillis = currentMillis;
-	}
 }
 
 //--------------------------------------------------------------
@@ -658,17 +761,6 @@ void ofApp::newRandomNumbers(){
 	if(playNewNumberSound) {
 		playSound("GURU_BLINK_" + std::to_string((int)ofRandom(1, 5)) + ".wav");
 	}
-}
-
-//--------------------------------------------------------------
-void ofApp::freshStateNumberInterval(){
-	lastStateNumberMillis = currentMillis;
-	stateNumberInterval = ofRandom(stateNumberIntervalMin, stateNumberIntervalMax);
-}
-
-//--------------------------------------------------------------
-void ofApp::freshStateNumberDuration(){
-	stateNumberDuration = ofRandom(stateNumberDurationMin, stateNumberDurationMax);
 }
 
 //--------------------------------------------------------------
@@ -705,9 +797,7 @@ void ofApp::PixileMessageHandler(SPixileMessage* pMessage, void* pUserData)
 		}
 		case 4: // Set Number State
 		{
-			pMe->setState(es_Numbers);
-			pMe->stateNumberStartMillis = pMe->currentMillis;
-			pMe->freshStateNumberDuration();
+			pMe->setState(esa_Numbers);
 			break;
 		}
 		case 5: // Map Upsidedown (true upsideDown, false map Normal)

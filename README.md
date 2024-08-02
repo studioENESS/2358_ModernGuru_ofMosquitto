@@ -60,6 +60,7 @@ Write the following into the mosquitto.desktop file.
     static routers=192.168.0.255
     static domain_name_servers=192.168.0.255
 
+**IP 30-44 Allocated to Modern Guru Mosquittos**
 
 ![preview](img/eness_logo.png)
 

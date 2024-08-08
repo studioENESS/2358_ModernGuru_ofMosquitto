@@ -58,9 +58,7 @@ ofJson ofApp::saveConfig() {
 	jconf["myNetworkID"]   = myNetworkID;
 	jconf["mapUpsideDown"] = mapUpsideDown;
 	jconf["numPCBs"]       = numPCBs;
-	jconf["drawMargin"]    = drawMargin;
-	jconf["drawScale"]     = drawScale;
-	ofSaveJson("config.json", jconf);
+	ofSavePrettyJson("config.json", jconf);
 	return jconf;
 }
 
@@ -78,22 +76,18 @@ void ofApp::loadConfig() {
 	myNetworkID   = jconf.value("myNetworkID", myNetworkID);
 	mapUpsideDown = jconf.value("mapUpsideDown", false);
 	numPCBs       = jconf.value("numPCBs", numPCBs);
-	drawMargin    = jconf.value("drawMargin", drawMargin);
-	drawScale     = jconf.value("drawScale", drawScale);
-
 }
 
 //--------------------------------------------------------------
 ofJson ofApp::getSettings() {
 	ofJson settings;
 
+	settings["drawMargin"]  = drawMargin;
+	settings["drawScale"]   = drawScale;
 	settings["brightness"]  = brightness;
 	
-	// START TIMERS \\---------------------------------------------
-	// TODO Save App State settings here
 	// The speed of number change
-	settings["newNumberInterval"]      = newNumberInterval;
-	// END TIMERS -------------------------------------------------
+	settings["newNumberInterval"] = newNumberInterval;
 
 	settings["pixelEyeSettings"] = PixelEyes.getSettings();
 
@@ -102,22 +96,22 @@ ofJson ofApp::getSettings() {
 
 //--------------------------------------------------------------
 void ofApp::setSettings(ofJson settings) {
-	//myNetworkID = settings.value("myNetworkID", myNetworkID);
-	//numPCBs = settings.value("numPCBs", numPCBs);
-	//drawMargin  = settings.value("drawMargin" , drawMargin);
-	//drawScale   = settings.value("drawScale"  , drawScale);
+	
+	drawMargin  = settings.value("drawMargin" , drawMargin);
+	drawScale   = settings.value("drawScale"  , drawScale);
 	brightness  = settings.value("brightness" , brightness);
 
-	// START TIMERS \\---------------------------------------------
-	// TODO Load App States
 	// The speed of number change
-	newNumberInterval      = settings.value("newNumberInterval", newNumberInterval);
-	// END TIMERS -------------------------------------------------
+	newNumberInterval = settings.value("newNumberInterval", newNumberInterval);
 
 	ofJson pixelEyeSettings;
 	pixelEyeSettings = settings.value("pixelEyeSettings", pixelEyeSettings);
 	PixelEyes.setSettings(pixelEyeSettings);
+}
 
+//--------------------------------------------------------------
+void ofApp::saveSettings() {
+	ofSavePrettyJson("settings.json", getSettings());
 }
 
 //--------------------------------------------------------------
@@ -134,6 +128,10 @@ void ofApp::setup() {
 	numPCBs = 2;
 	drawMargin = 4;
 	drawScale = 25;
+	// Have a selected state index?
+	currAppStatesFile = "AppStates.json";
+	currPupilStatesFile = "EyeMovementStates.json";
+
 	loadConfig();
 	
 	gui.setup(nullptr, false, ImGuiConfigFlags_DockingEnable | ImGuiConfigFlags_ViewportsEnable, true);
@@ -267,6 +265,8 @@ void ofApp::update(){
 
 //--------------------------------------------------------------
 void ofApp::setState(eStateApp toState) {
+	if (currentStateApp == toState) return;
+
 	switch (toState) {
 	case esa_Numbers:
 		// Don't change state if eyes are sleeping
@@ -302,6 +302,7 @@ void ofApp::draw(){
 	ImGuiID dockNodeID = ImGui::DockSpaceOverViewport(NULL, ImGuiDockNodeFlags_PassthruCentralNode);
 
 	// Draw some windows
+	drawMainMenuBar();
 	drawAppSettingsWindow();	
 	drawEyeSettingsWindow();
 	drawEyeStateCollectionWindow();
@@ -431,12 +432,12 @@ void ofApp::addCurrentState(std::string name /*="Untitled"*/) {
 //--------------------------------------------------------------
 void ofApp::loadStates() {
 	vEyeMovementStates.clear();
-	ofJson loaded = ofLoadJson("EyeMovementStates.json");
+	ofJson loaded = ofLoadJson(currPupilStatesFile);
 	if(!loaded.empty()) loaded.get_to(vEyeMovementStates);
 	if (vEyeMovementStates.size() < 1) addCurrentState();
 
 	vStatesApp.clear();
-	loaded = ofLoadJson("AppStates.json");
+	loaded = ofLoadJson(currAppStatesFile);
 	if (!loaded.empty()) loaded.get_to(vStatesApp);
 	if (vStatesApp.size() < 1) {
 		// Add init app states
@@ -468,6 +469,47 @@ void ofApp::freshStateEyeMovementInterval() {
 	stateEyeMovementInterval = ofRandom(vEyeMovementStates[iSelectedStateEyeIndex].stateIntervalMin, vEyeMovementStates[iSelectedStateEyeIndex].stateIntervalMax);
 }
 
+void ofApp::drawMainMenuBar()
+{
+
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 8));
+	ImGui::BeginMainMenuBar();
+	ImGui::PopStyleVar();
+
+	/*
+	// TODO: Make it drag the window
+	if (ImGui::IsItemHovered()) {
+		// Hovered	
+		ofLog() << "Menubar Hovered" << std::endl;	
+	}
+	*/
+
+	if (ImGui::BeginMenu("ofMosquitto")) {
+
+		if (ImGui::MenuItem("Save Settings...")) {
+			saveSettings();
+		}
+
+		if (ImGui::MenuItem("Quit")) {
+			ofExit();
+		}
+
+		ImGui::EndMenu();
+	}
+
+	/*
+	if (ImGui::BeginMenu("Settings")) {
+		if (ImGui::Checkbox("Vertical Sync", &bVsync)) {
+			ofSetVerticalSync(bVsync);
+		}
+		ImGui::EndMenu();
+
+	}
+	*/
+
+	ImGui::EndMainMenuBar();
+}
+
 //--------------------------------------------------------------
 void ofApp::drawAppSettingsWindow() {
 	ImGui::Begin("App Settings");
@@ -483,21 +525,23 @@ void ofApp::drawAppSettingsWindow() {
 //--------------------------------------------------------------
 void ofApp::drawEyeSettingsWindow() {
 	ImGui::Begin("Current");
+
 	ImGui::Checkbox("Allow Change Colour On Blink", &PixelEyes.Eyeballs.changeColourOnBlink);
 	
 	ImGui::Separator();
+	ImGui::Spacing();
 	ImGui::PushItemWidth(50);
 	ImGui::DragScalar("Move Interval Min", ImGuiDataType_U32, &PixelEyes.Eyeballs.moveIntervalMin, 10);
 	ImGui::DragScalar("Move Interval Max", ImGuiDataType_U32, &PixelEyes.Eyeballs.moveIntervalMax, 10);
 	ImGui::DragScalar("Target Interval Min", ImGuiDataType_U32, &PixelEyes.Eyeballs.targetIntervalMin, 10);
 	ImGui::DragScalar("Target Interval Max", ImGuiDataType_U32, &PixelEyes.Eyeballs.targetIntervalMax, 10);
 	ImGui::PopItemWidth();
-	
 	ImGui::Spacing();
-	if (ImGui::Button("Add to state collection"))
+	if (ImGui::Button("Add to Pupil State Collection"))
 	{
 		addCurrentState();
 	}
+	ImGui::Spacing();
 	ImGui::Separator();
 
 	ImGui::End();

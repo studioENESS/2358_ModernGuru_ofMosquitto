@@ -1,0 +1,27 @@
+{
+    "brightness": 1,
+    "drawMargin": 4,
+    "drawScale": 25,
+    "newNumberInterval": 250,
+    "pixelEyeSettings": {
+        "eyeballSettings": {
+            "BlinkAnnInterval": 33,
+            "SleepAnnInterval": 66,
+            "blinkInterval": 8000,
+            "blinkIntervalMax": 10000,
+            "blinkIntervalMin": 8000,
+            "m_bCanSleep": false,
+            "moveInterval": 176,
+            "moveIntervalMax": 250,
+            "moveIntervalMin": 50,
+            "sleepInterval": 80000,
+            "sleepIntervalMax": 100000,
+            "sleepIntervalMin": 80000,
+            "targetInterval": 3817,
+            "targetIntervalMax": 7000,
+            "targetIntervalMin": 1000
+        },
+        "m_drawMargin": 4.0,
+        "m_eyeCount": 2
+    }
+}

@@ -20,6 +20,7 @@ class ofApp : public ofBaseApp {
 
 		ofJson getSettings();
 		void setSettings(ofJson settings);
+		void saveSettings();
 
 		void setup();
 		void update();
@@ -118,12 +119,16 @@ class ofApp : public ofBaseApp {
 #endif
 		ofxImGui::Gui gui;
 
+		std::string currAppStatesFile;
+		std::string currPupilStatesFile;
+
 		eStateApp currentStateApp;
 		std::vector<appState> vStatesApp;
 
 		int iSelectedStateEyeIndex = 0;
 		std::vector<eyeMovementState> vEyeMovementStates;
 
+		void drawMainMenuBar();
 		void drawEyeSettingsWindow();
 		void drawEyeStateCollectionWindow();
 		void drawAppStateCollectionWindow();
@@ -173,4 +178,5 @@ class ofApp : public ofBaseApp {
 		bool lightsOn;
 
 		ofFbo outputTexture;
+		bool bVsync;
 };
